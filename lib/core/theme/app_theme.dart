@@ -18,6 +18,7 @@ class AppTheme {
         error: AppColors.primary,
       ),
       scaffoldBackgroundColor: AppColors.grey,
+      visualDensity: VisualDensity.standard,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.black,
         foregroundColor: AppColors.white,
@@ -28,6 +29,7 @@ class AppTheme {
           fontWeight: FontWeight.w700,
           color: AppColors.white,
         ),
+        iconTheme: const IconThemeData(color: AppColors.white),
       ),
       cardTheme: CardThemeData(
         color: AppColors.white,
@@ -56,6 +58,7 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.primary),
         ),
         labelStyle: GoogleFonts.inter(color: AppColors.muted),
+        hintStyle: GoogleFonts.inter(color: AppColors.muted),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -88,14 +91,41 @@ class AppTheme {
         unselectedItemColor: Color(0xFFBBBBBB),
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.grey,
+        backgroundColor: AppColors.white,
         selectedColor: AppColors.primary,
-        labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        disabledColor: AppColors.grey,
+        labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.text),
+        secondaryLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        side: const BorderSide(color: AppColors.border),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.black,
+        contentTextStyle: GoogleFonts.inter(color: AppColors.white),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.text),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        elevation: 2,
       ),
       dividerColor: AppColors.border,
+      dividerTheme: const DividerThemeData(color: AppColors.border, space: 1),
     );
 
     return base.copyWith(

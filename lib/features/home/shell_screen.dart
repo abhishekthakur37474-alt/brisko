@@ -12,32 +12,74 @@ class ShellScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(cartCountProvider);
+    const items = [
+      (Icons.home_outlined, Icons.home, 'Home'),
+      (Icons.local_pizza_outlined, Icons.local_pizza, 'Menu'),
+      (Icons.shopping_bag_outlined, Icons.shopping_bag, 'Cart'),
+      (Icons.receipt_long_outlined, Icons.receipt_long, 'Orders'),
+      (Icons.person_outline, Icons.person, 'Profile'),
+    ];
+
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (i) => navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex),
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          const BottomNavigationBarItem(icon: Icon(Icons.local_pizza_outlined), activeIcon: Icon(Icons.local_pizza), label: 'Menu'),
-          BottomNavigationBarItem(
-            icon: Badge(
-              isLabelVisible: count > 0,
-              backgroundColor: AppColors.primary,
-              label: Text('$count'),
-              child: const Icon(Icons.shopping_bag_outlined),
+      bottomNavigationBar: Material(
+        color: AppColors.black,
+        elevation: 12,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 6, 4, 8),
+            child: Row(
+              children: List.generate(items.length, (i) {
+                final selected = navigationShell.currentIndex == i;
+                return Expanded(
+                  child: InkWell(
+                    onTap: () => navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 3,
+                            width: selected ? 22 : 0,
+                            margin: const EdgeInsets.only(bottom: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          Badge(
+                            isLabelVisible: i == 2 && count > 0,
+                            backgroundColor: AppColors.primary,
+                            label: Text('$count', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                            child: Icon(
+                              selected ? items[i].$2 : items[i].$1,
+                              color: selected ? AppColors.primary : const Color(0xFFBBBBBB),
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            items[i].$3,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: selected ? AppColors.primary : const Color(0xFFBBBBBB),
+                              fontSize: 11,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
             ),
-            activeIcon: Badge(
-              isLabelVisible: count > 0,
-              backgroundColor: AppColors.primary,
-              label: Text('$count'),
-              child: const Icon(Icons.shopping_bag),
-            ),
-            label: 'Cart',
           ),
-          const BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'Orders'),
-          const BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+        ),
       ),
     );
   }

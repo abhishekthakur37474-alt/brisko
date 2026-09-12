@@ -48,4 +48,17 @@ class CouponModel {
     if (validTo > 0 && now > validTo) return false;
     return true;
   }
+
+  Map<String, dynamic> toMap() => {
+        'description': description,
+        'discountType': discountType,
+        'discountValue': discountValue,
+        'minOrderValue': minOrderValue,
+        'maxDiscount': maxDiscount,
+        'validFrom': validFrom,
+        'validTo': validTo,
+        'usageLimitPerUser': usageLimitPerUser,
+        'isFirstOrderOnly': isFirstOrderOnly,
+        'isActive': isActive,
+      };
 }

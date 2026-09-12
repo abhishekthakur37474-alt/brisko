@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_card.dart';
+import '../../core/widgets/price_row.dart';
 import '../../core/widgets/primary_button.dart';
 import '../addresses/address_controller.dart';
 import '../auth/auth_controller.dart';
@@ -47,24 +49,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         children: [
           Text('Delivery address', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(16)),
+          AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(loc.address?.fullAddress ?? 'No address selected'),
+                Text(loc.address?.fullAddress ?? 'No address selected', style: const TextStyle(fontWeight: FontWeight.w600)),
                 if (loc.outlet != null) Text('Outlet: ${loc.outlet!.name}', style: const TextStyle(color: AppColors.muted)),
-                TextButton(
-                  onPressed: () => context.push('/addresses'),
-                  child: const Text('Change address'),
-                ),
+                TextButton(onPressed: () => context.push('/addresses'), child: const Text('Change address')),
                 if (addresses.isNotEmpty)
                   ...addresses.map((a) => RadioListTile<String>(
                         value: a.id,
                         groupValue: loc.address?.id,
                         title: Text(a.label),
                         subtitle: Text(a.fullAddress, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        contentPadding: EdgeInsets.zero,
                         onChanged: (_) {
                           final outlets = ref.read(outletsProvider).valueOrNull ?? [];
                           ref.read(locationControllerProvider.notifier).setFromSaved(a, outlets);
@@ -75,43 +73,70 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
           const SizedBox(height: 16),
           Text('Loyalty points', style: Theme.of(context).textTheme.titleLarge),
-          SwitchListTile(
-            value: redeem,
-            title: Text('Redeem points (${user?.loyaltyPoints ?? 0} available)'),
-            subtitle: Text(loyalty == null
-                ? ''
-                : 'Min ${loyalty.minPointsToRedeem} pts · 1 pt = ${rupees(loyalty.redemptionValuePerPoint)}'),
-            onChanged: (user?.loyaltyPoints ?? 0) >= (loyalty?.minPointsToRedeem ?? 50)
-                ? (v) => ref.read(redeemLoyaltyProvider.notifier).state = v
-                : null,
-          ),
           const SizedBox(height: 8),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: SwitchListTile(
+              value: redeem,
+              title: Text('Redeem points (${user?.loyaltyPoints ?? 0} available)'),
+              subtitle: Text(loyalty == null ? '' : 'Min ${loyalty.minPointsToRedeem} pts · 1 pt = ${rupees(loyalty.redemptionValuePerPoint)}'),
+              onChanged: (user?.loyaltyPoints ?? 0) >= (loyalty?.minPointsToRedeem ?? 50)
+                  ? (v) => ref.read(redeemLoyaltyProvider.notifier).state = v
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 16),
           Text('Payment', style: Theme.of(context).textTheme.titleLarge),
-          RadioListTile<String>(
-            value: 'cod',
-            groupValue: _method,
-            title: const Text('Cash on Delivery'),
-            onChanged: (v) => setState(() => _method = v!),
-          ),
-          RadioListTile<String>(
-            value: 'online',
-            groupValue: _method,
-            title: const Text('Online payment'),
-            subtitle: const Text('Coming soon'),
-            onChanged: (v) => setState(() => _method = v!),
-          ),
           const SizedBox(height: 8),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                RadioListTile<String>(
+                  value: 'cod',
+                  groupValue: _method,
+                  title: const Text('Cash on Delivery'),
+                  subtitle: const Text('Pay when your pizza arrives'),
+                  onChanged: (v) => setState(() => _method = v!),
+                ),
+                RadioListTile<String>(
+                  value: 'online',
+                  groupValue: _method,
+                  title: const Text('Online payment'),
+                  subtitle: const Text('Coming soon'),
+                  onChanged: (v) => setState(() => _method = v!),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           TextField(controller: _notes, maxLines: 2, decoration: const InputDecoration(labelText: 'Order notes (optional)')),
           const SizedBox(height: 16),
-          _Line('Subtotal', rupees(price.subtotal)),
-          _Line('GST', rupees(price.gstAmount)),
-          _Line('Delivery', price.deliveryCharge == 0 ? 'FREE' : rupees(price.deliveryCharge)),
-          if (price.couponDiscount > 0) _Line('Coupon', '- ${rupees(price.couponDiscount)}'),
-          if (price.loyaltyDiscount > 0) _Line('Loyalty', '- ${rupees(price.loyaltyDiscount)}'),
-          _Line('To pay', rupees(price.finalAmount), bold: true),
-          const SizedBox(height: 16),
-          PrimaryButton(
-            label: 'Place Order',
+          AppCard(
+            child: Column(
+              children: [
+                PriceRow('Subtotal', rupees(price.subtotal)),
+                PriceRow('GST', rupees(price.gstAmount)),
+                PriceRow('Delivery', price.deliveryCharge == 0 ? 'FREE' : rupees(price.deliveryCharge), valueColor: price.deliveryCharge == 0 ? AppColors.success : null),
+                if (price.couponDiscount > 0) PriceRow('Coupon', '- ${rupees(price.couponDiscount)}', valueColor: AppColors.success),
+                if (price.loyaltyDiscount > 0) PriceRow('Loyalty', '- ${rupees(price.loyaltyDiscount)}', valueColor: AppColors.success),
+                const Divider(height: 20),
+                PriceRow('To pay', rupees(price.finalAmount), bold: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 88),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 12, offset: Offset(0, -2))],
+          ),
+          child: PrimaryButton(
+            label: 'Place Order · ${rupees(price.finalAmount)}',
             loading: _loading,
             onPressed: loc.outlet == null || loc.address == null || items.isEmpty
                 ? null
@@ -141,23 +166,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     }
                   },
           ),
-        ],
+        ),
       ),
-    );
-  }
-}
-
-class _Line extends StatelessWidget {
-  final String l;
-  final String r;
-  final bool bold;
-  const _Line(this.l, this.r, {this.bold = false});
-  @override
-  Widget build(BuildContext context) {
-    final style = bold ? Theme.of(context).textTheme.titleMedium : Theme.of(context).textTheme.bodyLarge;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [Expanded(child: Text(l, style: style)), Text(r, style: style)]),
     );
   }
 }

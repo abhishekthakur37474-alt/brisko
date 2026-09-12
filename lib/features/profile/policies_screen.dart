@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_colors.dart';
+import '../../core/widgets/app_card.dart';
+
 class PoliciesScreen extends StatelessWidget {
   const PoliciesScreen({super.key});
 
@@ -8,19 +11,49 @@ class PoliciesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Policies')),
       body: ListView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         children: [
-          Text('Privacy Policy', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-          SizedBox(height: 8),
-          Text('Brisko Pizza collects your name, email, phone, address and order history to fulfill deliveries. Data is stored in Firebase. We do not sell personal data.'),
-          SizedBox(height: 20),
-          Text('Terms & Conditions', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-          SizedBox(height: 8),
-          Text('Orders are subject to outlet availability and service area. Prices include GST as shown at checkout. Cash on Delivery is available in v1.'),
-          SizedBox(height: 20),
-          Text('Refund & Cancellation', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-          SizedBox(height: 8),
-          Text('You may cancel while an order is Placed or Confirmed. After preparation starts, cancellation is not available. COD refunds are not applicable. Online payment refunds will follow gateway policy once enabled.'),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Privacy Policy', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const Text(
+                  'Brisko Pizza collects your name, Google account email, optional phone, address and order history to fulfill deliveries. Login uses Continue with Google. Data is stored in Firebase. We do not sell personal data.',
+                  style: TextStyle(color: AppColors.muted, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Terms & Conditions', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const Text(
+                  'Orders are subject to outlet availability and service area. Prices include GST as shown at checkout. Cash on Delivery is available in v1.',
+                  style: TextStyle(color: AppColors.muted, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Refund & Cancellation', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                const Text(
+                  'You may cancel while an order is Placed or Confirmed. After preparation starts, cancellation is not available. COD refunds are not applicable. Online payment refunds will follow gateway policy once enabled.',
+                  style: TextStyle(color: AppColors.muted, height: 1.5),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

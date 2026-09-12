@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
+import 'brisko_logo.dart';
 
 class PizzaLoader extends StatefulWidget {
   final String? message;
@@ -17,8 +18,7 @@ class _PizzaLoaderState extends State<PizzaLoader> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
   }
 
   @override
@@ -35,7 +35,7 @@ class _PizzaLoaderState extends State<PizzaLoader> with SingleTickerProviderStat
         children: [
           RotationTransition(
             turns: _controller,
-            child: CustomPaint(size: const Size(56, 56), painter: _PizzaSlicePainter()),
+            child: CustomPaint(size: const Size(56, 56), painter: PizzaSlicePainter()),
           ),
           const SizedBox(height: 12),
           Text(
@@ -46,24 +46,4 @@ class _PizzaLoaderState extends State<PizzaLoader> with SingleTickerProviderStat
       ),
     );
   }
-}
-
-class _PizzaSlicePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppColors.primary;
-    final path = Path()
-      ..moveTo(size.width / 2, 4)
-      ..lineTo(size.width - 4, size.height - 6)
-      ..lineTo(4, size.height - 6)
-      ..close();
-    canvas.drawPath(path, paint);
-    final pep = Paint()..color = const Color(0xFF8B1A1A);
-    canvas.drawCircle(Offset(size.width * 0.45, size.height * 0.42), 4, pep);
-    canvas.drawCircle(Offset(size.width * 0.62, size.height * 0.58), 3.5, pep);
-    canvas.drawCircle(Offset(size.width * 0.38, size.height * 0.62), 3, pep);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

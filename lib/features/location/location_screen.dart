@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/widgets/app_card.dart';
 import '../../core/widgets/primary_button.dart';
 import 'location_controller.dart';
 
@@ -68,38 +69,46 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
             },
           ),
           const SizedBox(height: 24),
-          const Row(children: [Expanded(child: Divider()), Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('or enter manually')), Expanded(child: Divider())]),
+          const Row(children: [
+            Expanded(child: Divider()),
+            Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('or enter manually')),
+            Expanded(child: Divider()),
+          ]),
           const SizedBox(height: 16),
-          TextField(controller: _address, decoration: const InputDecoration(labelText: 'Address')),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: TextField(controller: _lat, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Latitude'))),
-              const SizedBox(width: 12),
-              Expanded(child: TextField(controller: _lng, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Longitude'))),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton(onPressed: _manual, child: const Text('Use this location')),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () async {
-              _address.text = 'Connaught Place, New Delhi';
-              _lat.text = '28.6328';
-              _lng.text = '77.2197';
-              await _manual();
-            },
-            child: const Text('Use demo outlet (Delhi CP)'),
+          AppCard(
+            child: Column(
+              children: [
+                TextField(controller: _address, decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.home_outlined))),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: _lat, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Latitude'))),
+                    const SizedBox(width: 12),
+                    Expanded(child: TextField(controller: _lng, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Longitude'))),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton(onPressed: _manual, child: const Text('Use this location')),
+                TextButton(
+                  onPressed: () async {
+                    _address.text = 'Connaught Place, New Delhi';
+                    _lat.text = '28.6328';
+                    _lng.text = '77.2197';
+                    await _manual();
+                  },
+                  child: const Text('Use demo outlet (Delhi CP)'),
+                ),
+              ],
+            ),
           ),
           if (loc.error != null) ...[
             const SizedBox(height: 16),
-            Text(loc.error!, style: const TextStyle(color: AppColors.primary)),
+            Text(loc.error!, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
           ],
           if (loc.noCoverage) ...[
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(16)),
+            AppCard(
+              color: AppColors.primarySoft,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

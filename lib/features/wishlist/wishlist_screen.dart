@@ -17,10 +17,10 @@ class WishlistScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Wishlist')),
       body: list.isEmpty
-          ? const EmptyState(title: 'No favorites yet', subtitle: 'Tap the heart on a pizza to save it.')
+          ? const EmptyState(title: 'No favorites yet', subtitle: 'Tap the heart on a pizza to save it.', icon: Icons.favorite_border)
           : GridView.builder(
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.72, mainAxisSpacing: 12, crossAxisSpacing: 12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.70, mainAxisSpacing: 12, crossAxisSpacing: 12),
               itemCount: list.length,
               itemBuilder: (_, i) => ProductCard(product: list[i]),
             ),

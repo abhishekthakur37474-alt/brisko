@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/widgets/primary_button.dart';
 import '../auth/auth_controller.dart';
 import 'reviews_controller.dart';
@@ -32,14 +33,17 @@ class _ReviewSheetState extends ConsumerState<ReviewSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4))),
+          const SizedBox(height: 16),
           Text('Rate your order', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
               5,
               (i) => IconButton(
                 onPressed: () => setState(() => _rating = i + 1),
-                icon: Icon(i < _rating ? Icons.star : Icons.star_border, color: const Color(0xFFF5A623)),
+                icon: Icon(i < _rating ? Icons.star_rounded : Icons.star_border_rounded, color: AppColors.warning, size: 32),
               ),
             ),
           ),

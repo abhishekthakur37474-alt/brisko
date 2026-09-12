@@ -5,7 +5,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_card.dart';
 import '../../core/widgets/pizza_loader.dart';
+import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/status_chip.dart';
 import '../cart/cart_controller.dart';
 import '../orders/orders_controller.dart';
 import '../reviews/review_sheet.dart';
@@ -13,6 +16,15 @@ import '../reviews/review_sheet.dart';
 class OrderTrackingScreen extends ConsumerWidget {
   final String orderId;
   const OrderTrackingScreen({super.key, required this.orderId});
+
+  static const _steps = [
+    ('placed', 'Placed', Icons.receipt_long_outlined),
+    ('confirmed', 'Confirmed', Icons.check_circle_outline),
+    ('preparing', 'Preparing', Icons.local_fire_department_outlined),
+    ('ready', 'Ready', Icons.restaurant_outlined),
+    ('out_for_delivery', 'On the way', Icons.delivery_dining_outlined),
+    ('delivered', 'Delivered', Icons.home_outlined),
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,33 +34,127 @@ class OrderTrackingScreen extends ConsumerWidget {
       body: async.when(
         data: (order) {
           if (order == null) return const Center(child: Text('Order not found'));
-          final steps = ['placed', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered'];
-          final current = steps.indexOf(order.orderStatus);
+          final current = _steps.indexWhere((s) => s.$1 == order.orderStatus);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(order.id, style: Theme.of(context).textTheme.titleLarge),
-              Text('${rupees(order.finalAmount)} · ${order.paymentMethod.toUpperCase()} · ${order.paymentStatus}'),
+              AppCard(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(order.id, style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${rupees(order.finalAmount)} · ${order.paymentMethod.toUpperCase()} · ${order.paymentStatus}',
+                            style: const TextStyle(color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    StatusChip(status: order.orderStatus),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
-              if (order.orderStatus == 'cancelled')
-                const Text('This order was cancelled.', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))
-              else
-                ...List.generate(steps.length, (i) {
-                  final done = current >= i;
-                  return ListTile(
-                    leading: Icon(done ? Icons.check_circle : Icons.radio_button_unchecked, color: done ? AppColors.success : AppColors.muted),
-                    title: Text(steps[i].replaceAll('_', ' '), style: TextStyle(fontWeight: done ? FontWeight.w700 : FontWeight.w400)),
-                  );
-                }),
-              const SizedBox(height: 12),
+              AppCard(
+                child: order.orderStatus == 'cancelled'
+                    ? Row(
+                        children: [
+                          const Icon(Icons.cancel_outlined, color: AppColors.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text('This order was cancelled.', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.primary)),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        children: List.generate(_steps.length, (i) {
+                          final done = current >= i;
+                          final active = current == i;
+                          final last = i == _steps.length - 1;
+                          return IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  children: [
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: done ? AppColors.success : AppColors.grey,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: active ? AppColors.primary : (done ? AppColors.success : AppColors.border), width: 2),
+                                      ),
+                                      child: Icon(
+                                        done ? Icons.check : _steps[i].$3,
+                                        size: 16,
+                                        color: done ? AppColors.white : AppColors.muted,
+                                      ),
+                                    ),
+                                    if (!last)
+                                      Expanded(
+                                        child: Container(
+                                          width: 2,
+                                          margin: const EdgeInsets.symmetric(vertical: 4),
+                                          color: done ? AppColors.success : AppColors.border,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(bottom: last ? 0 : 18, top: 4),
+                                    child: Text(
+                                      _steps[i].$2,
+                                      style: TextStyle(
+                                        fontWeight: active || done ? FontWeight.w700 : FontWeight.w400,
+                                        color: done ? AppColors.text : AppColors.muted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+              ),
+              const SizedBox(height: 16),
               Text('Delivering to', style: Theme.of(context).textTheme.titleMedium),
-              Text(order.address.fullAddress),
+              const SizedBox(height: 8),
+              AppCard(child: Text(order.address.fullAddress)),
               const SizedBox(height: 16),
               Text('Items', style: Theme.of(context).textTheme.titleMedium),
-              ...order.items.map((e) => ListTile(contentPadding: EdgeInsets.zero, title: Text('${e.name} x${e.quantity}'), trailing: Text(rupees(e.totalPrice)))),
-              const Divider(),
-              ListTile(contentPadding: EdgeInsets.zero, title: const Text('Invoice'), subtitle: Text(order.invoiceUrl == null ? 'Generating...' : 'Ready'), trailing: order.invoiceUrl == null ? null : IconButton(onPressed: () => launchUrl(Uri.parse(order.invoiceUrl!)), icon: const Icon(Icons.open_in_new))),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              AppCard(
+                child: Column(
+                  children: [
+                    ...order.items.map((e) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(children: [Expanded(child: Text('${e.name} x${e.quantity}')), Text(rupees(e.totalPrice), style: const TextStyle(fontWeight: FontWeight.w700))]),
+                        )),
+                    const Divider(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Text('Invoice', style: TextStyle(fontWeight: FontWeight.w600))),
+                        Text(order.invoiceUrl == null ? 'Generating...' : 'Ready', style: TextStyle(color: order.invoiceUrl == null ? AppColors.muted : AppColors.success)),
+                        if (order.invoiceUrl != null)
+                          IconButton(
+                            tooltip: 'Open invoice',
+                            onPressed: () => launchUrl(Uri.parse(order.invoiceUrl!)),
+                            icon: const Icon(Icons.open_in_new),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               if (order.canCancel)
                 OutlinedButton(
                   onPressed: () async {
@@ -74,12 +180,12 @@ class OrderTrackingScreen extends ConsumerWidget {
                   child: const Text('Cancel order'),
                 ),
               const SizedBox(height: 8),
-              ElevatedButton(
+              PrimaryButton(
+                label: 'Reorder',
                 onPressed: () async {
                   await ref.read(cartControllerProvider).replaceAll(order.items);
                   if (context.mounted) context.go('/cart');
                 },
-                child: const Text('Reorder'),
               ),
               if (order.orderStatus == 'delivered') ...[
                 const SizedBox(height: 8),
@@ -92,11 +198,12 @@ class OrderTrackingScreen extends ConsumerWidget {
                   child: const Text('Rate & review'),
                 ),
               ],
+              const SizedBox(height: 24),
             ],
           );
         },
         loading: () => const PizzaLoader(message: 'Tracking order...'),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => const Center(child: Text('Could not load this order')),
       ),
     );
   }

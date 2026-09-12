@@ -13,7 +13,20 @@
           "package_name": "com.example.brisko"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "916829487557-fav2h05oj6ci2f32qqoer29q9lsl4bq3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.brisko",
+            "certificate_hash": "e4993a06f2795d7b5a38441bdb7bea5872a33f0b"
+          }
+        },
+        {
+          "client_id": "916829487557-pv1shnboa40d8m5jdpid1ho1cdj6o0h2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAkpVrGHAfOmC6jgVO5UVbTwjeIMEE3vYA"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "916829487557-pv1shnboa40d8m5jdpid1ho1cdj6o0h2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

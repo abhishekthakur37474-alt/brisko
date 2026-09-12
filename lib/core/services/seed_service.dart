@@ -4,6 +4,7 @@ class SeedService {
   static const outletId = 'outlet_delhi_cp';
 
   Future<void> seedIfEmpty() async {
+    await repairCategoryImages();
     final snap = await FirebaseService.instance.ref('categories').get();
     if (snap.exists) return;
 
@@ -40,7 +41,7 @@ class SeedService {
         'pizzas': {'name': 'Pizzas', 'imageUrl': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400', 'sortOrder': 1, 'isActive': true},
         'burgers': {'name': 'Burgers', 'imageUrl': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', 'sortOrder': 2, 'isActive': true},
         'sides': {'name': 'Sides', 'imageUrl': 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400', 'sortOrder': 3, 'isActive': true},
-        'beverages': {'name': 'Beverages', 'imageUrl': 'https://images.unsplash.com/photo-1544145945-f90425316c8b?w=400', 'sortOrder': 4, 'isActive': true},
+        'beverages': {'name': 'Beverages', 'imageUrl': 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400', 'sortOrder': 4, 'isActive': true},
         'combos': {'name': 'Combos', 'imageUrl': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400', 'sortOrder': 5, 'isActive': true},
         'offers': {'name': 'Offers', 'imageUrl': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400', 'sortOrder': 6, 'isActive': true},
       },
@@ -93,6 +94,30 @@ class SeedService {
     };
 
     await FirebaseService.instance.ref('/').update(data);
+  }
+
+  Future<void> repairCategoryImages() async {
+    const images = {
+      'pizzas': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
+      'burgers': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
+      'sides': 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400',
+      'beverages': 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400',
+      'combos': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
+      'offers': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400',
+    };
+    for (final entry in images.entries) {
+      try {
+        final ref = FirebaseService.instance.ref('categories/${entry.key}');
+        final snap = await ref.get();
+        if (!snap.exists) continue;
+        final map = snap.value is Map ? Map<dynamic, dynamic>.from(snap.value as Map) : <dynamic, dynamic>{};
+        final current = (map['imageUrl'] ?? '').toString();
+        final broken = current.isEmpty || current.contains('1544145945');
+        if (broken) {
+          await ref.update({'imageUrl': entry.value});
+        }
+      } catch (_) {}
+    }
   }
 
   Map<String, dynamic> _products() {

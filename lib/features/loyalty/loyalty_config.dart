@@ -22,6 +22,14 @@ class LoyaltyConfig {
       pointsExpiryDays: (map['pointsExpiryDays'] as num?)?.toInt() ?? 90,
     );
   }
+
+  Map<String, dynamic> toMap() => {
+        'pointsPerRupeeSpent': pointsPerRupeeSpent,
+        'redemptionValuePerPoint': redemptionValuePerPoint,
+        'minPointsToRedeem': minPointsToRedeem,
+        'maxPointsUsablePerOrder': maxPointsUsablePerOrder,
+        'pointsExpiryDays': pointsExpiryDays,
+      };
 }
 
 class LoyaltyEntry {

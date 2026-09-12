@@ -37,4 +37,16 @@ class OutletModel {
       closeTime: (map['closeTime'] ?? '23:00') as String,
     );
   }
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        'serviceRadiusKm': serviceRadiusKm,
+        'isActive': isActive,
+        'contactNumber': contactNumber,
+        'openTime': openTime,
+        'closeTime': closeTime,
+      };
 }

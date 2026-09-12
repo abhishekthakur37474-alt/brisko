@@ -12,6 +12,8 @@ class CustomOption {
       price: (map['price'] as num?)?.toDouble() ?? 0,
     );
   }
+
+  Map<String, dynamic> toMap() => {'name': name, 'price': price};
 }
 
 class ProductModel {
@@ -54,6 +56,9 @@ class ProductModel {
   });
 
   String get image => images.isNotEmpty ? images.first : '';
+
+  bool get hasCustomizations =>
+      sizes.isNotEmpty || crusts.isNotEmpty || toppings.isNotEmpty || addons.isNotEmpty;
 
   factory ProductModel.fromMap(String id, Map<dynamic, dynamic> map) {
     List<CustomOption> parseOptions(dynamic node) {
@@ -108,5 +113,34 @@ class ProductModel {
   bool availableAt(String? outletId) {
     if (outletId == null || outletIds.isEmpty) return true;
     return outletIds.contains(outletId);
+  }
+
+  Map<String, dynamic> toMap() {
+    Map<String, dynamic> opts(List<CustomOption> list) =>
+        {for (final o in list) o.id: o.toMap()};
+    final imagesMap = <String, dynamic>{};
+    for (var i = 0; i < images.length; i++) {
+      imagesMap['$i'] = images[i];
+    }
+    return {
+      'name': name,
+      'description': description,
+      'categoryId': categoryId,
+      'images': imagesMap,
+      'basePrice': basePrice,
+      'isVeg': isVeg,
+      'isBestSeller': isBestSeller,
+      'isFeatured': isFeatured,
+      'isActive': isActive,
+      'outletIds': {for (final id in outletIds) id: true},
+      'customizations': {
+        'sizes': opts(sizes),
+        'crusts': opts(crusts),
+        'toppings': opts(toppings),
+        'addons': opts(addons),
+      },
+      'avgRating': avgRating,
+      'reviewCount': reviewCount,
+    };
   }
 }

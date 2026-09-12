@@ -11,23 +11,36 @@ class OrderConfirmScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.cream,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircleAvatar(radius: 40, backgroundColor: AppColors.success, child: Icon(Icons.check, color: AppColors.white, size: 40)),
+              Container(
+                width: 88,
+                height: 88,
+                decoration: const BoxDecoration(color: AppColors.successSoft, shape: BoxShape.circle),
+                child: const Icon(Icons.check_rounded, color: AppColors.success, size: 48),
+              ),
               const SizedBox(height: 20),
               Text('Order placed!', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
-              Text(orderId, style: const TextStyle(color: AppColors.muted)),
+              Text(orderId, style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              const Text('We are firing up the oven. Track status live from Orders.'),
+              const Text(
+                'We are firing up the oven. Track status live from Orders.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.muted),
+              ),
               const SizedBox(height: 28),
               PrimaryButton(label: 'Track order', onPressed: () => context.go('/order/$orderId')),
               const SizedBox(height: 12),
-              OutlinedButton(onPressed: () => context.go('/home'), child: const Text('Back to home')),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(onPressed: () => context.go('/home'), child: const Text('Back to home')),
+              ),
             ],
           ),
         ),

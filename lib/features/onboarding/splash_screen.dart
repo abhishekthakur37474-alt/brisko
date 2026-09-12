@@ -1,48 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/widgets/brisko_logo.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: AppColors.black,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _BLogo(),
-            SizedBox(height: 16),
+            const BriskoLogo(size: 112, dark: false),
+            const SizedBox(height: 20),
+            Text(
+              AppStrings.appName,
+              style: GoogleFonts.poppins(
+                color: AppColors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               AppStrings.tagline,
-              style: TextStyle(color: AppColors.white, fontSize: 16, letterSpacing: 1.2),
+              style: GoogleFonts.inter(
+                color: const Color(0xFFDDDDDD),
+                fontSize: 15,
+                letterSpacing: 2.4,
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _BLogo extends StatelessWidget {
-  const _BLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 96,
-      height: 96,
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        'B',
-        style: TextStyle(color: AppColors.white, fontSize: 52, fontWeight: FontWeight.w800),
       ),
     );
   }

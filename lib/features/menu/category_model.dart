@@ -22,4 +22,11 @@ class CategoryModel {
       isActive: map['isActive'] != false,
     );
   }
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'imageUrl': imageUrl,
+        'sortOrder': sortOrder,
+        'isActive': isActive,
+      };
 }

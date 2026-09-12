@@ -6,9 +6,7 @@ import 'core/constants/app_strings.dart';
 import 'core/theme/app_theme.dart';
 import 'features/addresses/addresses_screen.dart';
 import 'features/auth/auth_controller.dart';
-import 'features/auth/forgot_password_screen.dart';
 import 'features/auth/login_screen.dart';
-import 'features/auth/register_screen.dart';
 import 'features/cart/cart_screen.dart';
 import 'features/checkout/checkout_screen.dart';
 import 'features/home/home_screen.dart';
@@ -42,9 +40,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (auth.isLoading) return null;
       final user = auth.valueOrNull;
       final path = state.matchedLocation;
-      final public = path == '/login' || path == '/register' || path == '/forgot';
-      if (user == null) return public ? null : '/login';
-      if (path == '/login' || path == '/register' || path == '/' || path == '/forgot') {
+      if (user == null) return path == '/login' ? null : '/login';
+      if (path == '/login' || path == '/') {
         if (loc.outlet == null) return '/location';
         return '/home';
       }
@@ -56,8 +53,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/forgot', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/location', builder: (_, __) => const LocationScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),

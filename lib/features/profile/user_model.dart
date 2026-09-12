@@ -7,6 +7,8 @@ class UserModel {
   final String? defaultAddressId;
   final int loyaltyPoints;
   final String role;
+  final bool isBlocked;
+  final String? managedOutletId;
   final Map<String, dynamic> fcmTokens;
 
   const UserModel({
@@ -18,6 +20,8 @@ class UserModel {
     this.defaultAddressId,
     this.loyaltyPoints = 0,
     this.role = 'customer',
+    this.isBlocked = false,
+    this.managedOutletId,
     this.fcmTokens = const {},
   });
 
@@ -31,6 +35,8 @@ class UserModel {
       defaultAddressId: map['defaultAddressId'] as String?,
       loyaltyPoints: (map['loyaltyPoints'] as num?)?.toInt() ?? 0,
       role: (map['role'] ?? 'customer') as String,
+      isBlocked: map['isBlocked'] == true,
+      managedOutletId: map['managedOutletId'] as String?,
       fcmTokens: Map<String, dynamic>.from(map['fcmTokens'] ?? {}),
     );
   }
@@ -43,6 +49,8 @@ class UserModel {
         'defaultAddressId': defaultAddressId,
         'loyaltyPoints': loyaltyPoints,
         'role': role,
+        'isBlocked': isBlocked,
+        'managedOutletId': managedOutletId,
         'fcmTokens': fcmTokens,
       };
 
@@ -56,6 +64,8 @@ class UserModel {
       defaultAddressId: defaultAddressId ?? this.defaultAddressId,
       loyaltyPoints: loyaltyPoints,
       role: role,
+      isBlocked: isBlocked,
+      managedOutletId: managedOutletId,
       fcmTokens: fcmTokens,
     );
   }
