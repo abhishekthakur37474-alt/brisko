@@ -102,7 +102,7 @@ class OrderModel {
       finalAmount: (map['finalAmount'] as num?)?.toDouble() ?? 0,
       paymentMethod: (map['paymentMethod'] ?? 'cod') as String,
       paymentStatus: (map['paymentStatus'] ?? 'pending') as String,
-      orderStatus: (map['orderStatus'] ?? 'placed') as String,
+      orderStatus: _normalizeStatus((map['orderStatus'] ?? 'placed').toString()),
       statusTimestamps: stamps,
       orderNotes: (map['orderNotes'] ?? '') as String,
       createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
@@ -143,4 +143,11 @@ class OrderModel {
   }
 
   bool get canCancel => orderStatus == 'placed' || orderStatus == 'confirmed';
+
+  static String _normalizeStatus(String raw) {
+    final s = raw.toLowerCase().trim().replaceAll(' ', '_');
+    if (s == 'on_the_way' || s == 'ontheway' || s == 'on-the-way') return 'out_for_delivery';
+    if (orderStatuses.contains(s)) return s;
+    return 'placed';
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
+import '../theme/app_motion.dart';
 
 class QuantityStepper extends StatelessWidget {
   final int value;
@@ -31,10 +32,18 @@ class QuantityStepper extends StatelessWidget {
           _btn(Icons.remove, onMinus, size),
           ConstrainedBox(
             constraints: const BoxConstraints(minWidth: 28),
-            child: Text(
-              '$value',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+            child: AnimatedSwitcher(
+              duration: AppMotion.fast,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: ScaleTransition(scale: anim, child: child),
+              ),
+              child: Text(
+                '$value',
+                key: ValueKey(value),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
           ),
           _btn(Icons.add, onPlus, size, filled: true),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 import '../cart/cart_controller.dart';
 
 class ShellScreen extends ConsumerWidget {
@@ -41,7 +42,7 @@ class ShellScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
+                            duration: AppMotion.fast,
                             height: 3,
                             width: selected ? 22 : 0,
                             margin: const EdgeInsets.only(bottom: 4),
@@ -53,7 +54,18 @@ class ShellScreen extends ConsumerWidget {
                           Badge(
                             isLabelVisible: i == 2 && count > 0,
                             backgroundColor: AppColors.primary,
-                            label: Text('$count', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                            label: AnimatedSwitcher(
+                              duration: AppMotion.fast,
+                              transitionBuilder: (child, anim) => ScaleTransition(
+                                scale: anim,
+                                child: FadeTransition(opacity: anim, child: child),
+                              ),
+                              child: Text(
+                                '$count',
+                                key: ValueKey(count),
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+                              ),
+                            ),
                             child: Icon(
                               selected ? items[i].$2 : items[i].$1,
                               color: selected ? AppColors.primary : const Color(0xFFBBBBBB),

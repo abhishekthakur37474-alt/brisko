@@ -5,17 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/pricing.dart';
+import '../../core/widgets/glass_sheet.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/quantity_stepper.dart';
 import '../../core/widgets/veg_badge.dart';
 import '../cart/cart_controller.dart';
 import '../menu/product_model.dart';
 
-Future<void> showCustomizeSheet(BuildContext context, ProductModel product) {
-  return showModalBottomSheet(
+Future<void> showCustomizeSheet(BuildContext context, ProductModel product) async {
+  await showGlassSheet(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
     builder: (_) => CustomizeSheet(product: product),
   );
 }
@@ -141,73 +140,57 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                 if (product.sizes.isNotEmpty) ...[
                   Text('Size', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: product.sizes
-                        .map((s) => ChoiceChip(
-                              label: Text('${s.name}${s.price > 0 ? ' +${rupees(s.price)}' : ''}'),
-                              selected: _size == s.id,
-                              selectedColor: AppColors.primary,
-                              labelStyle: TextStyle(color: _size == s.id ? AppColors.white : AppColors.black, fontWeight: FontWeight.w600),
-                              onSelected: (_) => setState(() => _size = s.id),
-                            ))
-                        .toList(),
-                  ),
+                  ...product.sizes.map((s) => _OptionRow(
+                        title: s.name,
+                        price: s.price,
+                        selected: _size == s.id,
+                        onTap: () => setState(() => _size = s.id),
+                      )),
                   const SizedBox(height: 16),
                 ],
                 if (product.crusts.isNotEmpty) ...[
                   Text('Crust', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: product.crusts
-                        .map((s) => ChoiceChip(
-                              label: Text('${s.name}${s.price > 0 ? ' +${rupees(s.price)}' : ''}'),
-                              selected: _crust == s.id,
-                              selectedColor: AppColors.primary,
-                              labelStyle: TextStyle(color: _crust == s.id ? AppColors.white : AppColors.black, fontWeight: FontWeight.w600),
-                              onSelected: (_) => setState(() => _crust = s.id),
-                            ))
-                        .toList(),
-                  ),
+                  ...product.crusts.map((s) => _OptionRow(
+                        title: s.name,
+                        price: s.price,
+                        selected: _crust == s.id,
+                        onTap: () => setState(() => _crust = s.id),
+                      )),
                   const SizedBox(height: 16),
                 ],
                 if (product.toppings.isNotEmpty) ...[
                   Text('Toppings', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: product.toppings
-                        .map((s) => FilterChip(
-                              label: Text('${s.name} +${rupees(s.price)}'),
-                              selected: _toppings.contains(s.id),
-                              selectedColor: AppColors.primarySoft,
-                              checkmarkColor: AppColors.primary,
-                              onSelected: (v) => setState(() => v ? _toppings.add(s.id) : _toppings.remove(s.id)),
-                            ))
-                        .toList(),
-                  ),
+                  ...product.toppings.map((s) => _OptionRow(
+                        title: s.name,
+                        price: s.price,
+                        selected: _toppings.contains(s.id),
+                        onTap: () => setState(() {
+                          if (_toppings.contains(s.id)) {
+                            _toppings.remove(s.id);
+                          } else {
+                            _toppings.add(s.id);
+                          }
+                        }),
+                      )),
                   const SizedBox(height: 16),
                 ],
                 if (product.addons.isNotEmpty) ...[
                   Text('Add-ons', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: product.addons
-                        .map((s) => FilterChip(
-                              label: Text('${s.name} +${rupees(s.price)}'),
-                              selected: _addons.contains(s.id),
-                              selectedColor: AppColors.primarySoft,
-                              checkmarkColor: AppColors.primary,
-                              onSelected: (v) => setState(() => v ? _addons.add(s.id) : _addons.remove(s.id)),
-                            ))
-                        .toList(),
-                  ),
+                  ...product.addons.map((s) => _OptionRow(
+                        title: s.name,
+                        price: s.price,
+                        selected: _addons.contains(s.id),
+                        onTap: () => setState(() {
+                          if (_addons.contains(s.id)) {
+                            _addons.remove(s.id);
+                          } else {
+                            _addons.add(s.id);
+                          }
+                        }),
+                      )),
                 ],
               ],
             ),
@@ -267,6 +250,69 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OptionRow extends StatelessWidget {
+  final String title;
+  final double price;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _OptionRow({
+    required this.title,
+    required this.price,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: AppColors.text,
+                ),
+              ),
+            ),
+            if (price > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Text(
+                  '+${rupees(price)}',
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: selected ? AppColors.primary : AppColors.muted,
+                  ),
+                ),
+              ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? AppColors.primary : AppColors.white,
+                border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: 1.6),
+              ),
+              child: selected ? const Icon(Icons.check, size: 14, color: AppColors.white) : null,
+            ),
+          ],
+        ),
       ),
     );
   }

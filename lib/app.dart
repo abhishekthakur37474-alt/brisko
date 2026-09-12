@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/constants/app_strings.dart';
+import 'core/theme/app_motion.dart';
 import 'core/theme/app_theme.dart';
 import 'features/addresses/addresses_screen.dart';
 import 'features/auth/auth_controller.dart';
@@ -25,6 +26,7 @@ import 'features/orders/orders_screen.dart';
 import 'features/product_detail/product_detail_screen.dart';
 import 'features/profile/policies_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'features/search/search_screen.dart';
 import 'features/support/support_screen.dart';
 import 'features/wishlist/wishlist_screen.dart';
 
@@ -72,9 +74,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/location', builder: (_, __) => const LocationScreen()),
+      GoRoute(path: '/', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const SplashScreen(), begin: Offset.zero)),
+      GoRoute(path: '/login', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LoginScreen())),
+      GoRoute(path: '/location', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LocationScreen())),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),
         branches: [
@@ -85,17 +87,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen())]),
         ],
       ),
-      GoRoute(path: '/product/:id', builder: (_, s) => ProductDetailScreen(productId: s.pathParameters['id']!)),
-      GoRoute(path: '/checkout', builder: (_, __) => const CheckoutScreen()),
-      GoRoute(path: '/order-confirm/:id', builder: (_, s) => OrderConfirmScreen(orderId: s.pathParameters['id']!)),
-      GoRoute(path: '/order/:id', builder: (_, s) => OrderTrackingScreen(orderId: s.pathParameters['id']!)),
-      GoRoute(path: '/addresses', builder: (_, __) => const AddressesScreen()),
-      GoRoute(path: '/wishlist', builder: (_, __) => const WishlistScreen()),
-      GoRoute(path: '/loyalty', builder: (_, __) => const LoyaltyScreen()),
-      GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
-      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
-      GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
-      GoRoute(path: '/policies', builder: (_, __) => const PoliciesScreen()),
+      GoRoute(path: '/search', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const SearchScreen())),
+      GoRoute(path: '/product/:id', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: ProductDetailScreen(productId: s.pathParameters['id']!))),
+      GoRoute(path: '/checkout', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: const CheckoutScreen())),
+      GoRoute(path: '/order-confirm/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: OrderConfirmScreen(orderId: s.pathParameters['id']!))),
+      GoRoute(path: '/order/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: OrderTrackingScreen(orderId: s.pathParameters['id']!))),
+      GoRoute(path: '/addresses', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const AddressesScreen())),
+      GoRoute(path: '/wishlist', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const WishlistScreen())),
+      GoRoute(path: '/loyalty', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LoyaltyScreen())),
+      GoRoute(path: '/offers', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const OffersScreen())),
+      GoRoute(path: '/notifications', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const NotificationsScreen())),
+      GoRoute(path: '/support', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const SupportScreen())),
+      GoRoute(path: '/policies', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const PoliciesScreen())),
     ],
   );
 });

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 import '../location/location_controller.dart';
@@ -33,6 +34,8 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
     final productsAsync = ref.watch(productsProvider);
     final outletId = ref.watch(locationControllerProvider).outlet?.id;
+    final catId = _cat ?? (cats.isNotEmpty ? cats.first.id : null);
+    final wideLayout = catId == 'combos' || catId == 'offers';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Menu')),
@@ -48,7 +51,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final c = cats[i];
-                  final selected = (_cat ?? cats.first.id) == c.id;
+                  final selected = catId == c.id;
                   return ChoiceChip(
                     avatar: Icon(
                       CategoryIcon.iconFor(c.id, c.name),
@@ -68,38 +71,54 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Row(
-              children: [
-                _FilterPill(label: 'All', selected: _filter == 'all', onTap: () => setState(() => _filter = 'all')),
-                const SizedBox(width: 8),
-                _FilterPill(label: 'Veg', selected: _filter == 'veg', onTap: () => setState(() => _filter = 'veg'), color: AppColors.veg),
-                const SizedBox(width: 8),
-                _FilterPill(label: 'Non-veg', selected: _filter == 'nonveg', onTap: () => setState(() => _filter = 'nonveg'), color: AppColors.nonVeg),
-              ],
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  _Seg('All', _filter == 'all', () => setState(() => _filter = 'all')),
+                  _Seg('Veg', _filter == 'veg', () => setState(() => _filter = 'veg'), color: AppColors.veg),
+                  _Seg('Non-veg', _filter == 'nonveg', () => setState(() => _filter = 'nonveg'), color: AppColors.nonVeg),
+                ],
+              ),
             ),
           ),
           Expanded(
             child: productsAsync.when(
               data: (products) {
-                final catId = _cat ?? (cats.isNotEmpty ? cats.first.id : null);
                 var list = products.where((p) => p.availableAt(outletId)).toList();
                 if (catId != null) list = list.where((p) => p.categoryId == catId).toList();
                 if (_filter == 'veg') list = list.where((p) => p.isVeg).toList();
                 if (_filter == 'nonveg') list = list.where((p) => !p.isVeg).toList();
-                if (list.isEmpty) {
-                  return const EmptyState(title: 'No items', subtitle: 'Nothing in this category for your outlet yet.', icon: Icons.restaurant_outlined);
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.70,
-                  ),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) => ProductCard(product: list[i]),
+                return AnimatedSwitcher(
+                  duration: AppMotion.fast,
+                  child: list.isEmpty
+                      ? const EmptyState(key: ValueKey('empty'), title: 'No items', subtitle: 'Nothing in this category for your outlet yet.', icon: Icons.restaurant_outlined)
+                      : KeyedSubtree(
+                          key: ValueKey('$catId-$_filter-${list.length}'),
+                          child: wideLayout
+                              ? ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                                  itemCount: list.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                  itemBuilder: (_, i) => SizedBox(height: 132, child: ProductCard(product: list[i], wide: true)),
+                                )
+                              : GridView.builder(
+                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 12,
+                                    childAspectRatio: 0.70,
+                                  ),
+                                  itemCount: list.length,
+                                  itemBuilder: (_, i) => ProductCard(product: list[i]),
+                                ),
+                        ),
                 );
               },
               loading: () => const Padding(padding: EdgeInsets.all(16), child: GridViewDummy()),
@@ -112,27 +131,33 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   }
 }
 
-class _FilterPill extends StatelessWidget {
+class _Seg extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final Color? color;
-  const _FilterPill({required this.label, required this.selected, required this.onTap, this.color});
+  const _Seg(this.label, this.selected, this.onTap, {this.color});
 
   @override
   Widget build(BuildContext context) {
     final c = color ?? AppColors.black;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? c : AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? c : AppColors.border),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          margin: const EdgeInsets.all(4),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? c : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: selected ? AppColors.white : AppColors.black, fontWeight: FontWeight.w700, fontSize: 13),
+          ),
         ),
-        child: Text(label, style: TextStyle(color: selected ? AppColors.white : AppColors.black, fontWeight: FontWeight.w700, fontSize: 13)),
       ),
     );
   }

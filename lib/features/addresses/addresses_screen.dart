@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/glass_sheet.dart';
 import '../../core/widgets/primary_button.dart';
 import '../location/location_controller.dart';
 import 'address_controller.dart';
@@ -91,9 +92,8 @@ class AddressesScreen extends ConsumerWidget {
     final address = TextEditingController(text: existing?.fullAddress ?? '');
     final lat = TextEditingController(text: '${existing?.lat ?? 28.6328}');
     final lng = TextEditingController(text: '${existing?.lng ?? 77.2197}');
-    await showModalBottomSheet(
+    await showGlassSheet(
       context: context,
-      isScrollControlled: true,
       builder: (c) {
         return Padding(
           padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(c).viewInsets.bottom + 16),

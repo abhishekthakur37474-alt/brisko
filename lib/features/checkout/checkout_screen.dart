@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/price_row.dart';
@@ -24,6 +25,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String _method = 'cod';
   final _notes = TextEditingController();
   bool _loading = false;
+  bool _notesOpen = false;
 
   @override
   void dispose() {
@@ -50,6 +52,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Text('Delivery address', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           AppCard(
+            padding: const EdgeInsets.all(20),
+            selected: loc.address != null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -71,7 +75,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text('Loyalty points', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           AppCard(
@@ -85,32 +89,56 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   : null,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text('Payment', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                RadioListTile<String>(
-                  value: 'cod',
-                  groupValue: _method,
-                  title: const Text('Cash on Delivery'),
-                  subtitle: const Text('Pay when your pizza arrives'),
-                  onChanged: (v) => setState(() => _method = v!),
-                ),
-                RadioListTile<String>(
-                  value: 'online',
-                  groupValue: _method,
-                  title: const Text('Online payment'),
-                  subtitle: const Text('Coming soon'),
-                  onChanged: (v) => setState(() => _method = v!),
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            selected: _method == 'cod',
+            child: RadioListTile<String>(
+              value: 'cod',
+              groupValue: _method,
+              title: const Text('Cash on Delivery'),
+              subtitle: const Text('Pay when your pizza arrives'),
+              onChanged: (v) => setState(() => _method = v!),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(controller: _notes, maxLines: 2, decoration: const InputDecoration(labelText: 'Order notes (optional)')),
+          const SizedBox(height: 8),
+          AppCard(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            selected: _method == 'online',
+            child: RadioListTile<String>(
+              value: 'online',
+              groupValue: _method,
+              title: const Text('Online payment'),
+              subtitle: const Text('Coming soon'),
+              onChanged: (v) => setState(() => _method = v!),
+            ),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: () => setState(() => _notesOpen = !_notesOpen),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.notes_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_notesOpen ? 'Order notes' : 'Add order notes (optional)', style: const TextStyle(fontWeight: FontWeight.w600))),
+                  Icon(_notesOpen ? Icons.expand_less : Icons.expand_more),
+                ],
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            duration: AppMotion.fast,
+            crossFadeState: _notesOpen ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TextField(controller: _notes, maxLines: 2, decoration: const InputDecoration(labelText: 'Order notes')),
+            ),
+          ),
           const SizedBox(height: 16),
           AppCard(
             child: Column(
@@ -131,9 +159,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.white,
-            boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 12, offset: Offset(0, -2))],
+            boxShadow: AppColors.softShadow,
           ),
           child: PrimaryButton(
             label: 'Place Order · ${rupees(price.finalAmount)}',

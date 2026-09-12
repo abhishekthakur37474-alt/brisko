@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
+import '../theme/app_motion.dart';
 
 class Skeleton extends StatefulWidget {
   final double height;
@@ -19,7 +20,7 @@ class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
+    _c = AnimationController(vsync: this, duration: AppMotion.shimmer)..repeat();
   }
 
   @override
@@ -30,8 +31,25 @@ class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween(begin: 0.4, end: 1.0).animate(_c),
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (rect) {
+            return LinearGradient(
+              begin: Alignment(-1.2 + 2.4 * _c.value, 0),
+              end: Alignment(-0.2 + 2.4 * _c.value, 0),
+              colors: const [
+                Color(0x00FFFFFF),
+                Color(0x66FFFFFF),
+                Color(0x00FFFFFF),
+              ],
+            ).createShader(rect);
+          },
+          child: child,
+        );
+      },
       child: Container(
         height: widget.height,
         width: widget.width,

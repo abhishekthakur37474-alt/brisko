@@ -43,6 +43,8 @@ class CategoryIcon extends StatelessWidget {
           : CachedNetworkImage(
               imageUrl: category.imageUrl,
               fit: BoxFit.cover,
+              memCacheWidth: 200,
+              fadeInDuration: const Duration(milliseconds: 200),
               placeholder: (_, __) => fallback,
               errorWidget: (_, __, ___) => fallback,
             ),

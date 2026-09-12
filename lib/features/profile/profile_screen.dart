@@ -52,7 +52,7 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(

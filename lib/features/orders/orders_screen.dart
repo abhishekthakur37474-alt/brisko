@@ -30,48 +30,68 @@ class OrdersScreen extends ConsumerWidget {
               icon: Icons.receipt_long_outlined,
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, i) {
-              final o = orders[i];
-              return AppCard(
-                onTap: () => context.push('/order/${o.id}'),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(14)),
-                      child: const Icon(Icons.local_pizza, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            o.items.isNotEmpty ? o.items.first.name : o.id,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            DateFormat('dd MMM, hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(o.createdAt)),
-                            style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                          ),
-                          const SizedBox(height: 6),
-                          StatusChip(status: o.orderStatus),
-                        ],
-                      ),
-                    ),
-                    Text(rupees(o.finalAmount), style: const TextStyle(fontWeight: FontWeight.w800)),
-                  ],
-                ),
-              );
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              ref.invalidate(userOrdersProvider);
+              await Future<void>.delayed(const Duration(milliseconds: 400));
             },
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: orders.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, i) {
+                final o = orders[i];
+                return AppCard(
+                  onTap: () => context.push('/order/${o.id}'),
+                  child: Row(
+                    children: [
+                      Hero(
+                        tag: 'order-icon-${o.id}',
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(14)),
+                          child: const Icon(Icons.local_pizza, color: AppColors.primary),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              o.items.isNotEmpty ? o.items.first.name : o.id,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              DateFormat('dd MMM, hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(o.createdAt)),
+                              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 108,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(rupees(o.finalAmount), style: const TextStyle(fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 6),
+                            Align(alignment: Alignment.centerRight, child: StatusChip(status: o.orderStatus)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           );
         },
         loading: () => const PizzaLoader(message: 'Loading orders...'),

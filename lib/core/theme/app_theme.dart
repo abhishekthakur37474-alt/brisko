@@ -17,7 +17,7 @@ class AppTheme {
         onSurface: AppColors.text,
         error: AppColors.primary,
       ),
-      scaffoldBackgroundColor: AppColors.grey,
+      scaffoldBackgroundColor: AppColors.white,
       visualDensity: VisualDensity.standard,
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.black,
@@ -34,6 +34,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.white,
         elevation: 0,
+        shadowColor: AppColors.shadow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: EdgeInsets.zero,
       ),
@@ -109,6 +110,7 @@ class AppTheme {
         contentTextStyle: GoogleFonts.inter(color: AppColors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.white,
@@ -116,7 +118,8 @@ class AppTheme {
         titleTextStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18, color: AppColors.text),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.white,
+        backgroundColor: Colors.transparent,
+        modalBackgroundColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(

@@ -18,5 +18,23 @@ class AppColors {
   static const Color veg = Color(0xFF2E7D32);
   static const Color nonVeg = Color(0xFFE30613);
   static const Color overlay = Color(0x99000000);
-  static const Color shadow = Color(0x14000000);
+  static const Color shadow = Color(0x24000000);
+  static const Color liveBlue = Color(0xFF1565C0);
+  static const Color liveBlueSoft = Color(0xFFE3F2FD);
+
+  static const LinearGradient primaryGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primary, primaryDark],
+  );
+
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF111111), Color(0xFF1C1C1C), Color(0xFF2A0A0C)],
+  );
+
+  static List<BoxShadow> get softShadow => const [
+        BoxShadow(color: shadow, blurRadius: 16, offset: Offset(0, 6)),
+      ];
 }

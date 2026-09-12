@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/empty_state.dart';
 import '../auth/auth_controller.dart';
@@ -19,6 +20,7 @@ class LoyaltyScreen extends ConsumerWidget {
     final config = ref.watch(loyaltyConfigProvider).valueOrNull;
     final earned = history.fold<int>(0, (s, e) => s + e.pointsEarned);
     final redeemed = history.fold<int>(0, (s, e) => s + e.pointsRedeemed);
+    final points = user?.loyaltyPoints ?? 0;
     return Scaffold(
       appBar: AppBar(title: const Text('Loyalty')),
       body: ListView(
@@ -27,15 +29,23 @@ class LoyaltyScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: AppColors.black,
+              gradient: AppColors.headerGradient,
               borderRadius: BorderRadius.circular(20),
+              boxShadow: AppColors.softShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Current balance', style: TextStyle(color: Color(0xFFCCCCCC))),
                 const SizedBox(height: 6),
-                Text('${user?.loyaltyPoints ?? 0} pts', style: const TextStyle(color: AppColors.white, fontSize: 36, fontWeight: FontWeight.w800)),
+                TweenAnimationBuilder<int>(
+                  tween: IntTween(begin: 0, end: points),
+                  duration: const Duration(milliseconds: 700),
+                  curve: AppMotion.easeOut,
+                  builder: (context, value, _) {
+                    return Text('$value pts', style: const TextStyle(color: AppColors.white, fontSize: 36, fontWeight: FontWeight.w800));
+                  },
+                ),
                 const SizedBox(height: 8),
                 Text('Earned $earned · Redeemed $redeemed', style: const TextStyle(color: Color(0xFFDDDDDD))),
                 if (config != null)
@@ -49,7 +59,7 @@ class LoyaltyScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text('History', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           if (history.isEmpty)
