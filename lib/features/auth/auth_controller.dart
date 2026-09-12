@@ -1,13 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/services/firebase_service.dart';
 import '../../core/services/notification_service.dart';
 import '../profile/user_model.dart';
 
+const _loggedInKey = 'brisko_logged_in';
+
 final authStateProvider = StreamProvider<User?>((ref) {
-  return FirebaseService.instance.auth.authStateChanges();
+  return FirebaseAuth.instance.authStateChanges();
+});
+
+final sessionRestoreProvider = FutureProvider<User?>((ref) async {
+  final splashHold = Future<void>.delayed(const Duration(milliseconds: 900));
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    try {
+      user = await FirebaseAuth.instance.authStateChanges().first.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => FirebaseAuth.instance.currentUser,
+      );
+    } catch (_) {
+      user = FirebaseAuth.instance.currentUser;
+    }
+  }
+  if (user == null) {
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    user = FirebaseAuth.instance.currentUser;
+  }
+  user ??= await ref.read(authControllerProvider).restoreSession();
+  if (user != null) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_loggedInKey, true);
+  }
+  await splashHold;
+  return user ?? FirebaseAuth.instance.currentUser;
 });
 
 final currentUserProvider = StreamProvider<UserModel?>((ref) {
@@ -20,9 +49,11 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
   });
 });
 
-final authControllerProvider = Provider<AuthController>((ref) => AuthController());
+final authControllerProvider = Provider<AuthController>((ref) => AuthController(ref));
 
 class AuthController {
+  AuthController(this._ref);
+  final Ref _ref;
   final _fb = FirebaseService.instance;
   final _google = GoogleSignIn(scopes: const ['email', 'profile']);
 
@@ -42,6 +73,41 @@ class AuthController {
     if (user == null) throw Exception('Google sign-in failed.');
     await _ensureUserRecord(user);
     await NotificationService().registerToken(user.uid);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_loggedInKey, true);
+  }
+
+  Future<User?> restoreSession() async {
+    var existing = _fb.auth.currentUser;
+    if (existing != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_loggedInKey, true);
+      return existing;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    existing = _fb.auth.currentUser;
+    if (existing != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_loggedInKey, true);
+      return existing;
+    }
+    try {
+      final account = await _google.signInSilently().timeout(const Duration(seconds: 6));
+      if (account == null) return _fb.auth.currentUser;
+      final googleAuth = await account.authentication;
+      if (googleAuth.idToken == null) return _fb.auth.currentUser;
+      final cred = await _fb.auth.signInWithCredential(
+        GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        ),
+      );
+      final user = cred.user;
+      if (user != null) await _ensureUserRecord(user);
+      return user ?? _fb.auth.currentUser;
+    } catch (_) {
+      return _fb.auth.currentUser;
+    }
   }
 
   Future<void> _ensureUserRecord(User user) async {
@@ -70,10 +136,13 @@ class AuthController {
   }
 
   Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_loggedInKey, false);
     try {
       await _google.signOut();
     } catch (_) {}
     await _fb.auth.signOut();
+    _ref.invalidate(sessionRestoreProvider);
   }
 
   Future<void> updateProfile({required String name, String? email, String? phone}) async {

@@ -3,24 +3,38 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class BriskoLogo extends StatelessWidget {
+  static const assetPath = 'assets/images/Brisko_logo.png';
+
   final double size;
   final bool dark;
   const BriskoLogo({super.key, this.size = 72, this.dark = true});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: dark ? AppColors.black : AppColors.primary,
-        borderRadius: BorderRadius.circular(size * 0.26),
-        boxShadow: const [BoxShadow(color: AppColors.shadow, blurRadius: 16, offset: Offset(0, 6))],
-      ),
-      alignment: Alignment.center,
-      child: CustomPaint(
-        size: Size(size * 0.58, size * 0.58),
-        painter: PizzaSlicePainter(),
+      child: Image.asset(
+        assetPath,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, __, ___) {
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: dark ? AppColors.black : AppColors.primary,
+              borderRadius: BorderRadius.circular(size * 0.26),
+            ),
+            alignment: Alignment.center,
+            child: CustomPaint(
+              size: Size(size * 0.58, size * 0.58),
+              painter: PizzaSlicePainter(),
+            ),
+          );
+        },
       ),
     );
   }

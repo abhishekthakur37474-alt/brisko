@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,18 +30,38 @@ import 'features/wishlist/wishlist_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
+class _RouterRefresh extends ChangeNotifier {
+  void ping() => notifyListeners();
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authStateProvider);
-  final loc = ref.watch(locationControllerProvider);
+  final refresh = _RouterRefresh();
+  ref.listen(authStateProvider, (_, __) => refresh.ping());
+  ref.listen(sessionRestoreProvider, (_, __) => refresh.ping());
+  ref.listen(locationControllerProvider, (_, __) => refresh.ping());
+  ref.onDispose(refresh.dispose);
+  ref.read(sessionRestoreProvider);
 
   return GoRouter(
     navigatorKey: _rootKey,
     initialLocation: '/',
+    refreshListenable: refresh,
     redirect: (context, state) {
-      if (auth.isLoading) return null;
-      final user = auth.valueOrNull;
+      final restore = ref.read(sessionRestoreProvider);
+      final auth = ref.read(authStateProvider);
+      final loc = ref.read(locationControllerProvider);
       final path = state.matchedLocation;
-      if (user == null) return path == '/login' ? null : '/login';
+      final user = FirebaseAuth.instance.currentUser ?? auth.valueOrNull;
+
+      if ((restore.isLoading && user == null) || loc.restoring) {
+        return path == '/' ? null : '/';
+      }
+      if (user == null) {
+        return path == '/login' ? null : '/login';
+      }
+      if (restore.isLoading && (path == '/' || path == '/login')) {
+        return '/';
+      }
       if (path == '/login' || path == '/') {
         if (loc.outlet == null) return '/location';
         return '/home';

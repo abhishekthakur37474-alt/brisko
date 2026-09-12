@@ -190,11 +190,26 @@ class OrderTrackingScreen extends ConsumerWidget {
               if (order.orderStatus == 'delivered') ...[
                 const SizedBox(height: 8),
                 OutlinedButton(
-                  onPressed: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => ReviewSheet(productId: order.items.first.productId),
-                  ),
+                  onPressed: () {
+                    String? productId;
+                    for (final item in order.items) {
+                      if (item.productId.isNotEmpty) {
+                        productId = item.productId;
+                        break;
+                      }
+                    }
+                    if (productId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No items available to review')),
+                      );
+                      return;
+                    }
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => ReviewSheet(productId: productId!),
+                    );
+                  },
                   child: const Text('Rate & review'),
                 ),
               ],

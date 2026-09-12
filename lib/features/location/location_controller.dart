@@ -22,6 +22,7 @@ class LocationState {
   final AddressModel? address;
   final OutletModel? outlet;
   final bool loading;
+  final bool restoring;
   final String? error;
   final bool noCoverage;
 
@@ -29,6 +30,7 @@ class LocationState {
     this.address,
     this.outlet,
     this.loading = false,
+    this.restoring = false,
     this.error,
     this.noCoverage = false,
   });
@@ -37,6 +39,7 @@ class LocationState {
     AddressModel? address,
     OutletModel? outlet,
     bool? loading,
+    bool? restoring,
     String? error,
     bool? noCoverage,
     bool clearError = false,
@@ -46,6 +49,7 @@ class LocationState {
       address: address ?? this.address,
       outlet: clearOutlet ? null : (outlet ?? this.outlet),
       loading: loading ?? this.loading,
+      restoring: restoring ?? this.restoring,
       error: clearError ? null : (error ?? this.error),
       noCoverage: noCoverage ?? this.noCoverage,
     );
@@ -57,25 +61,47 @@ final locationControllerProvider = StateNotifierProvider<LocationController, Loc
 });
 
 class LocationController extends StateNotifier<LocationState> {
-  LocationController(this.ref) : super(const LocationState());
+  LocationController(this.ref) : super(const LocationState(restoring: true));
   final Ref ref;
   final _location = LocationService();
 
   Future<void> restore() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lat = prefs.getDouble('loc_lat');
-    final lng = prefs.getDouble('loc_lng');
-    final address = prefs.getString('loc_address');
-    if (lat == null || lng == null || address == null) return;
-    await applyCoordinates(lat: lat, lng: lng, fullAddress: address, label: prefs.getString('loc_label') ?? 'Saved');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lat = prefs.getDouble('loc_lat');
+      final lng = prefs.getDouble('loc_lng');
+      final address = prefs.getString('loc_address');
+      if (lat == null || lng == null || address == null) {
+        if (mounted) state = const LocationState(restoring: false);
+        return;
+      }
+      await applyCoordinates(
+        lat: lat,
+        lng: lng,
+        fullAddress: address,
+        label: prefs.getString('loc_label') ?? 'Saved',
+        savedOutletId: prefs.getString('loc_outlet'),
+        savedOutletName: prefs.getString('loc_outlet_name'),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {
+      if (mounted) state = state.copyWith(restoring: false, loading: false);
+    } finally {
+      if (mounted && state.restoring) {
+        state = state.copyWith(restoring: false, loading: false);
+      }
+    }
   }
 
-  Future<void> _persist(AddressModel address) async {
+  Future<void> _persist(AddressModel address, OutletModel? outlet) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('loc_lat', address.lat);
     await prefs.setDouble('loc_lng', address.lng);
     await prefs.setString('loc_address', address.fullAddress);
     await prefs.setString('loc_label', address.label);
+    if (outlet != null) {
+      await prefs.setString('loc_outlet', outlet.id);
+      await prefs.setString('loc_outlet_name', outlet.name);
+    }
   }
 
   OutletModel? matchOutlet(double lat, double lng, List<OutletModel> outlets) {
@@ -105,9 +131,29 @@ class LocationController extends StateNotifier<LocationState> {
     required String fullAddress,
     String label = 'Home',
     String? id,
+    String? savedOutletId,
+    String? savedOutletName,
   }) async {
-    final outlets = await ref.read(outletsProvider.future);
-    final outlet = matchOutlet(lat, lng, outlets);
+    List<OutletModel> outlets = const [];
+    try {
+      outlets = await ref.read(outletsProvider.future).timeout(const Duration(seconds: 8));
+    } catch (_) {}
+    var outlet = matchOutlet(lat, lng, outlets);
+    if (outlet == null && savedOutletId != null && savedOutletId.isNotEmpty) {
+      outlet = outlets.where((o) => o.id == savedOutletId).firstOrNull ??
+          OutletModel(
+            id: savedOutletId,
+            name: savedOutletName ?? 'Outlet',
+            address: fullAddress,
+            lat: lat,
+            lng: lng,
+            serviceRadiusKm: 25,
+            isActive: true,
+            contactNumber: '',
+            openTime: '11:00',
+            closeTime: '23:30',
+          );
+    }
     final address = AddressModel(
       id: id ?? 'loc_${DateTime.now().millisecondsSinceEpoch}',
       label: label,
@@ -118,11 +164,11 @@ class LocationController extends StateNotifier<LocationState> {
       isDefault: true,
     );
     if (outlet == null) {
-      state = LocationState(address: address, loading: false, noCoverage: true, outlet: null);
+      state = LocationState(address: address, loading: false, restoring: false, noCoverage: true);
       return;
     }
-    await _persist(address);
-    state = LocationState(address: address, outlet: outlet, loading: false);
+    await _persist(address, outlet);
+    state = LocationState(address: address, outlet: outlet, loading: false, restoring: false);
   }
 
   void setFromSaved(AddressModel address, List<OutletModel> outlets) {
@@ -130,10 +176,11 @@ class LocationController extends StateNotifier<LocationState> {
         ? matchOutlet(address.lat, address.lng, outlets)
         : outlets.where((o) => o.id == address.outletId).firstOrNull ??
             matchOutlet(address.lat, address.lng, outlets);
-    _persist(address);
+    _persist(address, outlet);
     state = LocationState(
       address: address,
       outlet: outlet,
+      restoring: false,
       noCoverage: outlet == null,
     );
   }

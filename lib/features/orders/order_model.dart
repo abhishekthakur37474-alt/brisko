@@ -64,7 +64,17 @@ class OrderModel {
     if (itemsNode is Map) {
       final keys = itemsNode.keys.toList()..sort((a, b) => a.toString().compareTo(b.toString()));
       for (final k in keys) {
-        items.add(CartItem.fromMap(k.toString(), Map<dynamic, dynamic>.from(itemsNode[k] as Map)));
+        final v = itemsNode[k];
+        if (v is Map) {
+          items.add(CartItem.fromMap(k.toString(), Map<dynamic, dynamic>.from(v)));
+        }
+      }
+    } else if (itemsNode is List) {
+      for (var i = 0; i < itemsNode.length; i++) {
+        final v = itemsNode[i];
+        if (v is Map) {
+          items.add(CartItem.fromMap('$i', Map<dynamic, dynamic>.from(v)));
+        }
       }
     }
     final addr = map['addressSnapshot'] is Map
@@ -104,7 +114,9 @@ class OrderModel {
   Map<String, dynamic> toMap() {
     final itemsMap = <String, dynamic>{};
     for (var i = 0; i < items.length; i++) {
-      itemsMap['$i'] = items[i].toMap();
+      final item = items[i];
+      final key = item.id.isNotEmpty ? item.id : '$i';
+      itemsMap[key] = item.toMap();
     }
     return {
       'userId': userId,
