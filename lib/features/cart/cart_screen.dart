@@ -7,6 +7,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/price_row.dart';
 import '../../core/widgets/primary_button.dart';
@@ -41,18 +42,49 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final coupon = ref.watch(appliedCouponProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cart')),
-      body: items.isEmpty
-          ? EmptyState(
-              title: 'Cart is empty',
-              subtitle: 'Add a pizza and we will fire up the oven.',
-              actionLabel: 'Browse menu',
-              onAction: () => context.go('/menu'),
-              icon: Icons.shopping_bag_outlined,
-            )
-          : Column(
-              children: [
-                Expanded(
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
+          BriskoTopBar(
+            title: 'Cart',
+            subtitle: items.isEmpty ? 'Add something tasty' : 'Review your items',
+            trailingIcon: items.isEmpty ? null : Icons.delete_outline,
+            onTrailingTap: items.isEmpty
+                ? null
+                : () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('Clear cart?'),
+                        content: const Text('This will remove all items from your cart.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep')),
+                          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Clear')),
+                        ],
+                      ),
+                    );
+                    if (ok == true) await ref.read(cartControllerProvider).clear();
+                  },
+            onBack: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+          ),
+          Expanded(
+            child: items.isEmpty
+                ? EmptyState(
+                    title: 'Cart is empty',
+                    subtitle: 'Add a pizza and we will fire up the oven.',
+                    actionLabel: 'Browse menu',
+                    onAction: () => context.go('/menu'),
+                    icon: Icons.shopping_bag_outlined,
+                  )
+                : Column(
+                    children: [
+                      Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     itemCount: items.length + 2,
@@ -152,8 +184,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     child: PrimaryButton(label: 'Proceed to Checkout · ${rupees(price.finalAmount)}', onPressed: () => context.push('/checkout')),
                   ),
                 ),
-              ],
-            ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -35,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.black,
+      backgroundColor: AppColors.white,
       body: FadeTransition(
         opacity: _fade,
         child: ScaleTransition(
@@ -49,13 +49,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   width: 148,
                   height: 148,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const BriskoLogo(size: 128, dark: false),
+                  errorBuilder: (_, __, ___) => const BriskoLogo(size: 128, dark: true),
                 ),
                 const SizedBox(height: 22),
                 Text(
                   AppStrings.appName,
                   style: GoogleFonts.poppins(
-                    color: AppColors.white,
+                    color: AppColors.black,
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.4,
@@ -65,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 Text(
                   AppStrings.tagline,
                   style: GoogleFonts.inter(
-                    color: const Color(0xFFDDDDDD),
+                    color: AppColors.muted,
                     fontSize: 15,
                     letterSpacing: 2.4,
                   ),

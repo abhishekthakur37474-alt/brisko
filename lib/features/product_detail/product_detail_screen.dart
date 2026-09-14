@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
@@ -49,11 +51,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final wish = ref.watch(wishlistProvider).valueOrNull ?? {};
     final reviews = ref.watch(reviewsProvider(widget.productId)).valueOrNull ?? [];
     if (product == null) {
-      return const Scaffold(body: PizzaLoader(message: 'Loading product...'));
+      return const Scaffold(backgroundColor: AppColors.white, body: PizzaLoader(message: 'Loading product...'));
     }
     final wished = wish.contains(product.id);
 
     return Scaffold(
+      backgroundColor: AppColors.white,
       body: Column(
         children: [
           Expanded(
@@ -63,6 +66,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 SliverAppBar(
                   expandedHeight: 280,
                   pinned: true,
+                  leading: GestureDetector(
+                    onTap: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/home');
+                      }
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedArrowLeft01,
+                        color: AppColors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
                   actions: [
                     IconButton(
                       tooltip: wished ? 'Remove from wishlist' : 'Add to wishlist',

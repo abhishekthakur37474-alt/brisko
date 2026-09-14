@@ -22,9 +22,9 @@ final addressControllerProvider = Provider((ref) => AddressController());
 class AddressController {
   final _uuid = const Uuid();
 
-  Future<void> save(AddressModel address) async {
+  Future<String?> save(AddressModel address) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) return null;
     final id = address.id.isEmpty ? _uuid.v4() : address.id;
     if (address.isDefault) {
       final snap = await FirebaseService.instance.ref('users/$uid/addresses').get();
@@ -36,6 +36,7 @@ class AddressController {
       await FirebaseService.instance.ref('users/$uid/defaultAddressId').set(id);
     }
     await FirebaseService.instance.ref('users/$uid/addresses/$id').set(address.copyWith().toMap()..['isDefault'] = address.isDefault);
+    return id;
   }
 
   Future<void> delete(String id) async {

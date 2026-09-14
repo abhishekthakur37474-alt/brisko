@@ -45,3 +45,12 @@ workspace.zip
 firebase-service-account.json
 **/firebase-service-account.json
 backend/config/firebase-service-account.json    
+
+# Backend secrets, dependencies and runtime data
+backend/config/.env
+backend/config/config.local.php
+backend/vendor/
+backend/storage/otp/*
+backend/storage/logs/*
+!backend/storage/otp/.gitignore
+!backend/storage/logs/.gitignore

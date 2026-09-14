@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_strings.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/glass_sheet.dart';
 import '../../core/widgets/pizza_loader.dart';
 import '../../core/widgets/primary_button.dart';
@@ -33,8 +35,17 @@ class OrderTrackingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(orderByIdProvider(orderId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Order tracking')),
-      body: async.when(
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
+          BriskoTopBar(
+            title: 'Track Order',
+            subtitle: 'Order #$orderId',
+            trailingIcon: Icons.call_outlined,
+            onTrailingTap: () => launchUrl(Uri.parse('tel:${AppStrings.supportPhone}')),
+          ),
+          Expanded(
+            child: async.when(
         data: (order) {
           if (order == null) return const Center(child: Text('Order not found'));
           final raw = order.orderStatus;
@@ -123,7 +134,7 @@ class OrderTrackingScreen extends ConsumerWidget {
                 label: 'Reorder',
                 onPressed: () async {
                   await ref.read(cartControllerProvider).replaceAll(order.items);
-                  if (context.mounted) context.go('/cart');
+                  if (context.mounted) context.push('/cart');
                 },
               ),
               if (order.orderStatus == 'delivered') ...[
@@ -157,6 +168,9 @@ class OrderTrackingScreen extends ConsumerWidget {
         },
         loading: () => const PizzaLoader(message: 'Tracking order...'),
         error: (e, _) => const Center(child: Text('Could not load this order')),
+            ),
+          ),
+        ],
       ),
     );
   }

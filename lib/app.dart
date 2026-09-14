@@ -7,8 +7,11 @@ import 'core/constants/app_strings.dart';
 import 'core/theme/app_motion.dart';
 import 'core/theme/app_theme.dart';
 import 'features/addresses/addresses_screen.dart';
+import 'features/addresses/detect_address_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/otp_screen.dart';
+import 'features/auth/register_screen.dart';
 import 'features/cart/cart_screen.dart';
 import 'features/checkout/checkout_screen.dart';
 import 'features/home/home_screen.dart';
@@ -40,7 +43,11 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh();
   ref.listen(authStateProvider, (_, __) => refresh.ping());
   ref.listen(sessionRestoreProvider, (_, __) => refresh.ping());
-  ref.listen(locationControllerProvider, (_, __) => refresh.ping());
+  ref.listen(locationControllerProvider, (prev, next) {
+    if (prev?.restoring != next.restoring || prev?.outlet?.id != next.outlet?.id) {
+      refresh.ping();
+    }
+  });
   ref.onDispose(refresh.dispose);
   ref.read(sessionRestoreProvider);
 
@@ -54,21 +61,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loc = ref.read(locationControllerProvider);
       final path = state.matchedLocation;
       final user = FirebaseAuth.instance.currentUser ?? auth.valueOrNull;
+      // Routes that a signed-out user must be able to reach (mobile OTP flow).
+      const publicPaths = {'/login', '/otp', '/register'};
 
       if ((restore.isLoading && user == null) || loc.restoring) {
         return path == '/' ? null : '/';
       }
       if (user == null) {
-        return path == '/login' ? null : '/login';
+        return publicPaths.contains(path) ? null : '/login';
       }
       if (restore.isLoading && (path == '/' || path == '/login')) {
         return '/';
       }
-      if (path == '/login' || path == '/') {
+      if (path == '/login') return '/location';
+      if (path == '/otp' || path == '/register') return null;
+      if (path == '/') {
         if (loc.outlet == null) return '/location';
         return '/home';
       }
-      if (loc.outlet == null && path != '/location' && path != '/addresses') {
+      if (loc.outlet == null && path != '/location' && path != '/addresses' && path != '/register') {
         return '/location';
       }
       return null;
@@ -76,32 +87,71 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const SplashScreen(), begin: Offset.zero)),
       GoRoute(path: '/login', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LoginScreen())),
+      GoRoute(
+        path: '/otp',
+        pageBuilder: (_, s) => fadeSlidePage(
+          key: s.pageKey,
+          child: OtpScreen(mobile: s.uri.queryParameters['mobile'] ?? ''),
+        ),
+      ),
+      GoRoute(path: '/register', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const RegisterScreen())),
       GoRoute(path: '/location', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LocationScreen())),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/home', builder: (_, __) => const HomeScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/menu', builder: (_, __) => const MenuScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/cart', builder: (_, __) => const CartScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/orders', builder: (_, __) => const OrdersScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen())]),
         ],
       ),
-      GoRoute(path: '/search', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const SearchScreen())),
-      GoRoute(path: '/product/:id', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: ProductDetailScreen(productId: s.pathParameters['id']!))),
-      GoRoute(path: '/checkout', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: const CheckoutScreen())),
-      GoRoute(path: '/order-confirm/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: OrderConfirmScreen(orderId: s.pathParameters['id']!))),
-      GoRoute(path: '/order/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: OrderTrackingScreen(orderId: s.pathParameters['id']!))),
-      GoRoute(path: '/addresses', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const AddressesScreen())),
-      GoRoute(path: '/wishlist', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const WishlistScreen())),
-      GoRoute(path: '/loyalty', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LoyaltyScreen())),
-      GoRoute(path: '/offers', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const OffersScreen())),
-      GoRoute(path: '/notifications', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const NotificationsScreen())),
-      GoRoute(path: '/support', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const SupportScreen())),
-      GoRoute(path: '/policies', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const PoliciesScreen())),
+      GoRoute(path: '/cart', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: const _OverlayBack(child: CartScreen()))),
+      GoRoute(path: '/search', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: SearchScreen()))),
+      GoRoute(path: '/product/:id', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: _OverlayBack(child: ProductDetailScreen(productId: s.pathParameters['id']!)))),
+      GoRoute(path: '/checkout', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: const _OverlayBack(child: CheckoutScreen()))),
+      GoRoute(path: '/order-confirm/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: _OverlayBack(child: OrderConfirmScreen(orderId: s.pathParameters['id']!)))),
+      GoRoute(path: '/order/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: _OverlayBack(child: OrderTrackingScreen(orderId: s.pathParameters['id']!)))),
+      GoRoute(path: '/addresses', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: AddressesScreen()))),
+      GoRoute(path: '/detect-address', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: DetectAddressScreen()))),
+      GoRoute(path: '/wishlist', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: WishlistScreen()))),
+      GoRoute(path: '/loyalty', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: LoyaltyScreen()))),
+      GoRoute(path: '/offers', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: OffersScreen()))),
+      GoRoute(path: '/notifications', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: NotificationsScreen()))),
+      GoRoute(path: '/support', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: SupportScreen()))),
+      GoRoute(path: '/policies', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: PoliciesScreen()))),
     ],
   );
 });
+
+class _OverlayBack extends StatelessWidget {
+  final Widget child;
+  const _OverlayBack({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final nav = _rootKey.currentState;
+        if (nav != null) {
+          var poppedOverlay = false;
+          nav.popUntil((route) {
+            if (poppedOverlay) return true;
+            if (route is PopupRoute) {
+              poppedOverlay = true;
+              return false;
+            }
+            return true;
+          });
+          if (poppedOverlay) return;
+        }
+        context.go('/home');
+      },
+      child: child,
+    );
+  }
+}
 
 class BriskoApp extends ConsumerWidget {
   const BriskoApp({super.key});

@@ -67,15 +67,35 @@ class ProductCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Skeleton(height: 120, radius: 16),
-        SizedBox(height: 8),
-        Skeleton(height: 14, width: 120),
-        SizedBox(height: 6),
-        Skeleton(height: 12, width: 80),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Skeleton(height: 128, radius: 0),
+          Padding(
+            padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Skeleton(height: 14, width: 120, radius: 8),
+                SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(child: Skeleton(height: 14, width: 56, radius: 8)),
+                    SizedBox(width: 8),
+                    Skeleton(height: 28, width: 56, radius: 10),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

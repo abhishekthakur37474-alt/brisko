@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/services/firebase_service.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/primary_button.dart';
 
 class SupportScreen extends StatefulWidget {
@@ -29,8 +30,15 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Support')),
-      body: ListView(
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
+          const BriskoTopBar(
+            title: 'Support',
+            subtitle: 'We are here to help',
+          ),
+          Expanded(
+            child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           AppCard(
@@ -96,6 +104,9 @@ class _SupportScreenState extends State<SupportScreen> {
                   },
                 ),
               ],
+            ),
+          ),
+        ],
             ),
           ),
         ],

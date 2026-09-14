@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
@@ -22,8 +23,15 @@ class LoyaltyScreen extends ConsumerWidget {
     final redeemed = history.fold<int>(0, (s, e) => s + e.pointsRedeemed);
     final points = user?.loyaltyPoints ?? 0;
     return Scaffold(
-      appBar: AppBar(title: const Text('Loyalty')),
-      body: ListView(
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
+          const BriskoTopBar(
+            title: 'Loyalty',
+            subtitle: 'Earn on every order',
+          ),
+          Expanded(
+            child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Container(
@@ -97,6 +105,9 @@ class LoyaltyScreen extends ConsumerWidget {
                     ),
                   ),
                 )),
+        ],
+            ),
+          ),
         ],
       ),
     );

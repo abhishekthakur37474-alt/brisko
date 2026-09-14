@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/glass_sheet.dart';
 import '../../core/widgets/primary_button.dart';
@@ -18,15 +20,22 @@ class AddressesScreen extends ConsumerWidget {
     final list = ref.watch(addressesProvider).valueOrNull ?? [];
     final outlets = ref.watch(outletsProvider).valueOrNull ?? [];
     return Scaffold(
-      appBar: AppBar(title: const Text('Saved addresses')),
+      backgroundColor: AppColors.white,
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,
-        onPressed: () => _edit(context, ref, null),
+        onPressed: () => context.push('/detect-address'),
         child: const Icon(Icons.add, color: AppColors.white),
       ),
-      body: list.isEmpty
-          ? const EmptyState(title: 'No addresses', subtitle: 'Add a delivery address to get started.', icon: Icons.location_on_outlined)
-          : ListView.separated(
+      body: Column(
+        children: [
+          const BriskoTopBar(
+            title: 'Addresses',
+            subtitle: 'Delivery locations',
+          ),
+          Expanded(
+            child: list.isEmpty
+                ? const EmptyState(title: 'No addresses', subtitle: 'Add a delivery address to get started.', icon: Icons.location_on_outlined)
+                : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: list.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -84,14 +93,15 @@ class AddressesScreen extends ConsumerWidget {
                 );
               },
             ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _edit(BuildContext context, WidgetRef ref, AddressModel? existing) async {
     final label = TextEditingController(text: existing?.label ?? 'Home');
     final address = TextEditingController(text: existing?.fullAddress ?? '');
-    final lat = TextEditingController(text: '${existing?.lat ?? 28.6328}');
-    final lng = TextEditingController(text: '${existing?.lng ?? 77.2197}');
     await showGlassSheet(
       context: context,
       builder: (c) {
@@ -102,33 +112,25 @@ class AddressesScreen extends ConsumerWidget {
             children: [
               Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4))),
               const SizedBox(height: 16),
-              Text(existing == null ? 'Add address' : 'Edit address', style: Theme.of(c).textTheme.titleLarge),
+              Text('Edit address', style: Theme.of(c).textTheme.titleLarge),
               const SizedBox(height: 12),
               TextField(controller: label, decoration: const InputDecoration(labelText: 'Label')),
               const SizedBox(height: 8),
               TextField(controller: address, decoration: const InputDecoration(labelText: 'Full address')),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: TextField(controller: lat, decoration: const InputDecoration(labelText: 'Lat'))),
-                const SizedBox(width: 8),
-                Expanded(child: TextField(controller: lng, decoration: const InputDecoration(labelText: 'Lng'))),
-              ]),
               const SizedBox(height: 12),
               PrimaryButton(
                 label: 'Save',
                 onPressed: () async {
-                  final la = double.tryParse(lat.text) ?? 0;
-                  final ln = double.tryParse(lng.text) ?? 0;
                   final outlets = ref.read(outletsProvider).valueOrNull ?? [];
-                  final outlet = ref.read(locationControllerProvider.notifier).matchOutlet(la, ln, outlets);
+                  final outlet = ref.read(locationControllerProvider.notifier).matchOutlet(existing!.lat, existing.lng, outlets);
                   await ref.read(addressControllerProvider).save(AddressModel(
-                        id: existing?.id ?? '',
+                        id: existing.id,
                         label: label.text,
                         fullAddress: address.text,
-                        lat: la,
-                        lng: ln,
+                        lat: existing.lat,
+                        lng: existing.lng,
                         outletId: outlet?.id,
-                        isDefault: existing?.isDefault ?? listEmptyDefault(ref),
+                        isDefault: existing.isDefault,
                       ));
                   if (c.mounted) Navigator.pop(c);
                 },

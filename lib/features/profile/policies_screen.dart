@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 
 class PoliciesScreen extends StatelessWidget {
   const PoliciesScreen({super.key});
@@ -9,8 +10,15 @@ class PoliciesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Policies')),
-      body: ListView(
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
+          const BriskoTopBar(
+            title: 'Policies',
+            subtitle: 'How Brisko works',
+          ),
+          Expanded(
+            child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           AppCard(
@@ -52,6 +60,9 @@ class PoliciesScreen extends StatelessWidget {
                   style: TextStyle(color: AppColors.muted, height: 1.5),
                 ),
               ],
+            ),
+          ),
+        ],
             ),
           ),
         ],

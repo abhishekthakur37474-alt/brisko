@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 import '../location/location_controller.dart';
@@ -76,41 +78,41 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: TextField(
-          controller: _controller,
-          focusNode: _focus,
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          onChanged: _onChanged,
-          style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
-          cursorColor: AppColors.white,
-          decoration: const InputDecoration(
-            hintText: 'Search for pizzas, burgers...',
-            hintStyle: TextStyle(color: Color(0xFFBBBBBB), fontWeight: FontWeight.w500),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            filled: false,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(vertical: 12),
+      body: Column(
+        children: [
+          BriskoTopBar(
+            title: 'Search',
+            subtitle: 'Find your next pizza',
+            trailingIcon: _query.isEmpty ? null : Icons.close,
+            onTrailingTap: _query.isEmpty
+                ? null
+                : () {
+                    _controller.clear();
+                    setState(() => _query = '');
+                    _focus.requestFocus();
+                  },
           ),
-        ),
-        actions: [
-          if (_query.isNotEmpty)
-            IconButton(
-              tooltip: 'Clear',
-              onPressed: () {
-                _controller.clear();
-                setState(() => _query = '');
-                _focus.requestFocus();
-              },
-              icon: const Icon(Icons.close),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _controller,
+              focusNode: _focus,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              onChanged: _onChanged,
+              style: const TextStyle(color: AppColors.black, fontWeight: FontWeight.w600),
+              cursorColor: AppColors.primary,
+              decoration: const InputDecoration(
+                hintText: 'Search for pizzas, burgers...',
+                prefixIcon: HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: AppColors.muted, size: 22),
+                prefixIconConstraints: BoxConstraints(minWidth: 40, minHeight: 22),
+                filled: true,
+                fillColor: AppColors.surface,
+              ),
             ),
-        ],
-      ),
-      body: productsAsync.when(
+          ),
+          Expanded(
+            child: productsAsync.when(
         data: (products) {
           final available = products.where((p) => p.availableAt(loc.outlet?.id)).toList();
           if (_query.isEmpty) {
@@ -171,7 +173,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.70,
+                    childAspectRatio: 0.68,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (_, i) => ProductCard(product: list[i]),
@@ -191,6 +193,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           subtitle: 'Check your connection and try again.',
           icon: Icons.wifi_off,
         ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 import '../location/location_controller.dart';
 import 'catalog_providers.dart';
 import 'category_icon.dart';
+import 'menu_filter_row.dart';
 import 'product_card.dart';
+import 'product_model.dart';
 
 class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({super.key});
@@ -20,13 +24,44 @@ class MenuScreen extends ConsumerStatefulWidget {
 
 class _MenuScreenState extends ConsumerState<MenuScreen> {
   String? _cat;
-  String _filter = 'all';
+  bool _vegOnly = false;
+  bool _nonVegOnly = false;
+  MenuSort _sort = MenuSort.popularity;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final q = GoRouterState.of(context).uri.queryParameters['cat'];
     if (q != null && _cat == null) _cat = q;
+  }
+
+  List<ProductModel> _applyFilters(List<ProductModel> products, String? outletId, String? catId) {
+    var list = products.where((p) => p.availableAt(outletId)).toList();
+    if (catId != null) list = list.where((p) => p.categoryId == catId).toList();
+    if (_vegOnly && !_nonVegOnly) {
+      list = list.where((p) => p.isVeg).toList();
+    } else if (_nonVegOnly && !_vegOnly) {
+      list = list.where((p) => !p.isVeg).toList();
+    }
+    list.sort((a, b) {
+      switch (_sort) {
+        case MenuSort.priceLowHigh:
+          return a.basePrice.compareTo(b.basePrice);
+        case MenuSort.priceHighLow:
+          return b.basePrice.compareTo(a.basePrice);
+        case MenuSort.popularity:
+          final featured = (b.isBestSeller ? 2 : 0) + (b.isFeatured ? 1 : 0) - ((a.isBestSeller ? 2 : 0) + (a.isFeatured ? 1 : 0));
+          if (featured != 0) return featured;
+          final reviews = b.reviewCount.compareTo(a.reviewCount);
+          if (reviews != 0) return reviews;
+          return b.avgRating.compareTo(a.avgRating);
+        case MenuSort.rating:
+          final rating = b.avgRating.compareTo(a.avgRating);
+          if (rating != 0) return rating;
+          return b.reviewCount.compareTo(a.reviewCount);
+      }
+    });
+    return list;
   }
 
   @override
@@ -38,82 +73,75 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final wideLayout = catId == 'combos' || catId == 'offers';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu')),
+      backgroundColor: AppColors.warmBg,
       body: Column(
         children: [
+          BriskoTopBar(
+            title: 'Menu',
+            subtitle: 'Browse the kitchen',
+            trailingHugeIcon: HugeIcons.strokeRoundedSearch01,
+            onTrailingTap: () => context.push('/search'),
+            onBack: () => context.go('/home'),
+          ),
           if (cats.isNotEmpty)
             SizedBox(
-              height: 56,
+              height: 52,
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 scrollDirection: Axis.horizontal,
                 itemCount: cats.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final c = cats[i];
                   final selected = catId == c.id;
-                  return ChoiceChip(
-                    avatar: Icon(
-                      CategoryIcon.iconFor(c.id, c.name),
-                      size: 16,
-                      color: selected ? AppColors.white : AppColors.primary,
-                    ),
-                    label: Text(c.name),
+                  return _CategoryPill(
+                    label: c.name,
+                    icon: CategoryIcon.iconFor(c.id, c.name),
                     selected: selected,
-                    selectedColor: AppColors.primary,
-                    backgroundColor: AppColors.white,
-                    labelStyle: TextStyle(color: selected ? AppColors.white : AppColors.black, fontWeight: FontWeight.w600),
-                    side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
-                    onSelected: (_) => setState(() => _cat = c.id),
-                    showCheckmark: false,
+                    onTap: () => setState(() => _cat = c.id),
                   );
                 },
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  _Seg('All', _filter == 'all', () => setState(() => _filter = 'all')),
-                  _Seg('Veg', _filter == 'veg', () => setState(() => _filter = 'veg'), color: AppColors.veg),
-                  _Seg('Non-veg', _filter == 'nonveg', () => setState(() => _filter = 'nonveg'), color: AppColors.nonVeg),
-                ],
-              ),
-            ),
+          MenuFilterRow(
+            vegOnly: _vegOnly,
+            nonVegOnly: _nonVegOnly,
+            onVegToggle: () => setState(() => _vegOnly = !_vegOnly),
+            onNonVegToggle: () => setState(() => _nonVegOnly = !_nonVegOnly),
+            onSortTap: () async {
+              final selected = await showMenuSortSheet(context, _sort);
+              if (selected != null && mounted) setState(() => _sort = selected);
+            },
           ),
           Expanded(
             child: productsAsync.when(
               data: (products) {
-                var list = products.where((p) => p.availableAt(outletId)).toList();
-                if (catId != null) list = list.where((p) => p.categoryId == catId).toList();
-                if (_filter == 'veg') list = list.where((p) => p.isVeg).toList();
-                if (_filter == 'nonveg') list = list.where((p) => !p.isVeg).toList();
+                final list = _applyFilters(products, outletId, catId);
                 return AnimatedSwitcher(
                   duration: AppMotion.fast,
                   child: list.isEmpty
-                      ? const EmptyState(key: ValueKey('empty'), title: 'No items', subtitle: 'Nothing in this category for your outlet yet.', icon: Icons.restaurant_outlined)
+                      ? const EmptyState(
+                          key: ValueKey('empty'),
+                          title: 'No items',
+                          subtitle: 'Nothing in this category for your outlet yet.',
+                          icon: Icons.restaurant_outlined,
+                        )
                       : KeyedSubtree(
-                          key: ValueKey('$catId-$_filter-${list.length}'),
+                          key: ValueKey('$catId-$_vegOnly-$_nonVegOnly-$_sort-${list.length}'),
                           child: wideLayout
                               ? ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),
                                   itemCount: list.length,
                                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                                   itemBuilder: (_, i) => SizedBox(height: 132, child: ProductCard(product: list[i], wide: true)),
                                 )
                               : GridView.builder(
-                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    mainAxisSpacing: 12,
+                                    mainAxisSpacing: 14,
                                     crossAxisSpacing: 12,
-                                    childAspectRatio: 0.70,
+                                    childAspectRatio: 0.68,
                                   ),
                                   itemCount: list.length,
                                   itemBuilder: (_, i) => ProductCard(product: list[i]),
@@ -121,8 +149,12 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                         ),
                 );
               },
-              loading: () => const Padding(padding: EdgeInsets.all(16), child: GridViewDummy()),
-              error: (e, _) => const EmptyState(title: 'Could not load menu', subtitle: 'Check your connection and try again.', icon: Icons.wifi_off),
+              loading: () => const Padding(padding: EdgeInsets.fromLTRB(16, 4, 16, 16), child: GridViewDummy()),
+              error: (e, _) => const EmptyState(
+                title: 'Could not load menu',
+                subtitle: 'Check your connection and try again.',
+                icon: Icons.wifi_off,
+              ),
             ),
           ),
         ],
@@ -131,32 +163,49 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   }
 }
 
-class _Seg extends StatelessWidget {
+class _CategoryPill extends StatelessWidget {
   final String label;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  final Color? color;
-  const _Seg(this.label, this.selected, this.onTap, {this.color});
+
+  const _CategoryPill({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.black;
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: AppMotion.fast,
-          margin: const EdgeInsets.all(4),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? c : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        curve: AppMotion.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primarySoft : AppColors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected ? AppColors.primary.withValues(alpha: 0.28) : AppColors.border.withValues(alpha: 0.8),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: selected ? AppColors.white : AppColors.black, fontWeight: FontWeight.w700, fontSize: 13),
-          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: selected ? AppColors.primary : AppColors.muted),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? AppColors.primary : AppColors.black,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 13,
+                height: 1,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -169,9 +218,9 @@ class GridViewDummy extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.count(
       crossAxisCount: 2,
-      mainAxisSpacing: 12,
+      mainAxisSpacing: 14,
       crossAxisSpacing: 12,
-      childAspectRatio: 0.70,
+      childAspectRatio: 0.68,
       children: const [ProductCardSkeleton(), ProductCardSkeleton(), ProductCardSkeleton(), ProductCardSkeleton()],
     );
   }

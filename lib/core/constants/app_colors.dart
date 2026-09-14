@@ -8,6 +8,8 @@ class AppColors {
   static const Color white = Color(0xFFFFFFFF);
   static const Color grey = Color(0xFFF6F4F2);
   static const Color cream = Color(0xFFFFF8F3);
+  static const Color warmBg = Color(0xFFF8F7F3);
+  static const Color surface = Color(0xFFF1F1EF);
   static const Color success = Color(0xFF2E7D32);
   static const Color successSoft = Color(0xFFE8F5E9);
   static const Color warning = Color(0xFFF5A623);

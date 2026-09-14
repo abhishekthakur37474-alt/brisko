@@ -18,6 +18,8 @@ final outletsProvider = StreamProvider<List<OutletModel>>((ref) {
   });
 });
 
+enum LocationUiStatus { idle, loading, detected, denied, deniedForever, gpsOff, failed, noCoverage }
+
 class LocationState {
   final AddressModel? address;
   final OutletModel? outlet;
@@ -25,6 +27,7 @@ class LocationState {
   final bool restoring;
   final String? error;
   final bool noCoverage;
+  final LocationUiStatus status;
 
   const LocationState({
     this.address,
@@ -33,6 +36,7 @@ class LocationState {
     this.restoring = false,
     this.error,
     this.noCoverage = false,
+    this.status = LocationUiStatus.idle,
   });
 
   LocationState copyWith({
@@ -42,6 +46,7 @@ class LocationState {
     bool? restoring,
     String? error,
     bool? noCoverage,
+    LocationUiStatus? status,
     bool clearError = false,
     bool clearOutlet = false,
   }) {
@@ -52,6 +57,7 @@ class LocationState {
       restoring: restoring ?? this.restoring,
       error: clearError ? null : (error ?? this.error),
       noCoverage: noCoverage ?? this.noCoverage,
+      status: status ?? this.status,
     );
   }
 }
@@ -116,14 +122,55 @@ class LocationController extends StateNotifier<LocationState> {
   }
 
   Future<void> detect() async {
-    state = state.copyWith(loading: true, clearError: true, noCoverage: false);
-    final loc = await _location.detect();
-    if (loc == null) {
-      state = state.copyWith(loading: false, error: 'Location permission denied. Enter address manually.');
+    if (state.loading) return;
+    state = state.copyWith(
+      loading: true,
+      clearError: true,
+      noCoverage: false,
+      status: LocationUiStatus.loading,
+    );
+    final result = await _location.detect();
+    if (!mounted) return;
+    if (result.fail != null) {
+      final status = switch (result.fail!) {
+        LocationFail.denied => LocationUiStatus.denied,
+        LocationFail.deniedForever => LocationUiStatus.deniedForever,
+        LocationFail.gpsOff => LocationUiStatus.gpsOff,
+        LocationFail.failed => LocationUiStatus.failed,
+      };
+      state = state.copyWith(loading: false, restoring: false, status: status);
       return;
     }
+    final loc = result.location!;
     await applyCoordinates(lat: loc.lat, lng: loc.lng, fullAddress: loc.address, label: 'Current');
   }
+
+  Future<void> applyManualAddress(String query) async {
+    if (state.loading) return;
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    state = state.copyWith(loading: true, clearError: true, noCoverage: false, status: LocationUiStatus.loading);
+    final loc = await _location.fromAddress(trimmed);
+    if (!mounted) return;
+    if (loc == null) {
+      state = state.copyWith(loading: false, restoring: false, status: LocationUiStatus.failed);
+      return;
+    }
+    await applyCoordinates(lat: loc.lat, lng: loc.lng, fullAddress: loc.address, label: 'Manual');
+  }
+
+  void resetToIdle() {
+    state = const LocationState(restoring: false, status: LocationUiStatus.idle);
+  }
+
+  void clearForNewLogin() {
+    if (!mounted) return;
+    state = const LocationState(restoring: false, status: LocationUiStatus.idle);
+  }
+
+  Future<void> openAppSettings() => _location.openSettings();
+
+  Future<void> openGpsSettings() => _location.openGpsSettings();
 
   Future<void> applyCoordinates({
     required double lat,
@@ -164,11 +211,23 @@ class LocationController extends StateNotifier<LocationState> {
       isDefault: true,
     );
     if (outlet == null) {
-      state = LocationState(address: address, loading: false, restoring: false, noCoverage: true);
+      state = LocationState(
+        address: address,
+        loading: false,
+        restoring: false,
+        noCoverage: true,
+        status: LocationUiStatus.noCoverage,
+      );
       return;
     }
     await _persist(address, outlet);
-    state = LocationState(address: address, outlet: outlet, loading: false, restoring: false);
+    state = LocationState(
+      address: address,
+      outlet: outlet,
+      loading: false,
+      restoring: false,
+      status: LocationUiStatus.detected,
+    );
   }
 
   void setFromSaved(AddressModel address, List<OutletModel> outlets) {
@@ -182,6 +241,7 @@ class LocationController extends StateNotifier<LocationState> {
       outlet: outlet,
       restoring: false,
       noCoverage: outlet == null,
+      status: outlet == null ? LocationUiStatus.noCoverage : LocationUiStatus.detected,
     );
   }
 }

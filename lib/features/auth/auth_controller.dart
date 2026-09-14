@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+// OLD SOCIAL (GOOGLE) LOGIN — disabled in favour of mobile OTP. Kept for reference.
+// import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/services/firebase_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/otp_auth_service.dart';
+import '../location/location_controller.dart';
 import '../profile/user_model.dart';
 
 const _loggedInKey = 'brisko_logged_in';
+
+final otpAuthServiceProvider = Provider<OtpAuthService>((ref) => OtpAuthService());
 
 final authStateProvider = StreamProvider<User?>((ref) {
   return FirebaseAuth.instance.authStateChanges();
@@ -55,26 +62,59 @@ class AuthController {
   AuthController(this._ref);
   final Ref _ref;
   final _fb = FirebaseService.instance;
-  final _google = GoogleSignIn(scopes: const ['email', 'profile']);
 
-  Future<void> signInWithGoogle() async {
-    final account = await _google.signIn();
-    if (account == null) return;
-    final googleAuth = await account.authentication;
-    if (googleAuth.idToken == null) {
-      throw Exception('Google sign-in failed. Enable the Google provider in Firebase and add your app SHA-1.');
-    }
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    final cred = await _fb.auth.signInWithCredential(credential);
+  // OLD SOCIAL (GOOGLE) LOGIN — disabled. Only ONE active auth flow (mobile OTP)
+  // is allowed, so this is left commented until the OTP flow is fully verified.
+  //
+  // final _google = GoogleSignIn(scopes: const ['email', 'profile']);
+  //
+  // Future<void> signInWithGoogle() async {
+  //   final account = await _google.signIn();
+  //   if (account == null) return;
+  //   final googleAuth = await account.authentication;
+  //   if (googleAuth.idToken == null) {
+  //     throw Exception('Google sign-in failed. Enable the Google provider in Firebase and add your app SHA-1.');
+  //   }
+  //   final credential = GoogleAuthProvider.credential(
+  //     accessToken: googleAuth.accessToken,
+  //     idToken: googleAuth.idToken,
+  //   );
+  //   final cred = await _fb.auth.signInWithCredential(credential);
+  //   final user = cred.user;
+  //   if (user == null) throw Exception('Google sign-in failed.');
+  //   await _ensureUserRecord(user);
+  //   await NotificationService().registerToken(user.uid);
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setBool(_loggedInKey, true);
+  //   _ref.read(locationControllerProvider.notifier).clearForNewLogin();
+  // }
+
+  /// Signs into Firebase using the custom token minted by the PHP backend
+  /// after a successful OTP verification.
+  Future<User> signInWithCustomToken(String customToken, {String phone = ''}) async {
+    final cred = await _fb.auth.signInWithCustomToken(customToken);
     final user = cred.user;
-    if (user == null) throw Exception('Google sign-in failed.');
-    await _ensureUserRecord(user);
+    if (user == null) throw Exception('Sign in failed. Please try again.');
+    await _ensurePhoneUserRecord(user, phone);
     await NotificationService().registerToken(user.uid);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_loggedInKey, true);
+    _ref.read(locationControllerProvider.notifier).clearForNewLogin();
+    return user;
+  }
+
+  /// Called from the register screen on first login to capture the user's name.
+  Future<void> registerProfile(String name) async {
+    final uid = _fb.auth.currentUser?.uid;
+    if (uid == null) return;
+    final trimmed = name.trim();
+    await _fb.ref('users/$uid').update({
+      'name': trimmed,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+    if (trimmed.isNotEmpty) {
+      await _fb.auth.currentUser?.updateDisplayName(trimmed);
+    }
   }
 
   Future<User?> restoreSession() async {
@@ -91,57 +131,42 @@ class AuthController {
       await prefs.setBool(_loggedInKey, true);
       return existing;
     }
-    try {
-      final account = await _google.signInSilently().timeout(const Duration(seconds: 6));
-      if (account == null) return _fb.auth.currentUser;
-      final googleAuth = await account.authentication;
-      if (googleAuth.idToken == null) return _fb.auth.currentUser;
-      final cred = await _fb.auth.signInWithCredential(
-        GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        ),
-      );
-      final user = cred.user;
-      if (user != null) await _ensureUserRecord(user);
-      return user ?? _fb.auth.currentUser;
-    } catch (_) {
-      return _fb.auth.currentUser;
-    }
+    // OLD SOCIAL (GOOGLE) SILENT RESTORE — disabled with the Google flow.
+    // Firebase persists the custom-token session on its own, so no silent
+    // provider restore is needed anymore.
+    //
+    // try {
+    //   final account = await _google.signInSilently().timeout(const Duration(seconds: 6));
+    //   ...
+    // } catch (_) {
+    //   return _fb.auth.currentUser;
+    // }
+    return _fb.auth.currentUser;
   }
 
-  Future<void> _ensureUserRecord(User user) async {
+  Future<void> _ensurePhoneUserRecord(User user, String phone) async {
     final ref = _fb.ref('users/${user.uid}');
     final snap = await ref.get();
-    final name = (user.displayName ?? '').trim();
-    final email = (user.email ?? '').trim();
-    if (!snap.exists) {
-      await ref.set({
-        'name': name,
-        'email': email,
-        'phone': '',
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
-      return;
-    }
-    final updates = <String, dynamic>{};
-    final current = snap.value is Map ? Map<dynamic, dynamic>.from(snap.value as Map) : <dynamic, dynamic>{};
-    if ((current['name'] ?? '').toString().trim().isEmpty && name.isNotEmpty) {
-      updates['name'] = name;
-    }
-    if ((current['email'] ?? '').toString().trim().isEmpty && email.isNotEmpty) {
-      updates['email'] = email;
-    }
-    if (updates.isNotEmpty) await ref.update(updates);
+    if (snap.exists) return;
+    await ref.set({
+      'name': '',
+      'email': '',
+      'phone': phone,
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_loggedInKey, false);
-    try {
-      await _google.signOut();
-    } catch (_) {}
+    // OLD SOCIAL (GOOGLE) LOGOUT — disabled with the Google flow.
+    // try {
+    //   await _google.signOut();
+    // } catch (_) {}
+    // Best-effort server notification; never block local sign-out on it.
+    unawaited(_ref.read(otpAuthServiceProvider).logout().catchError((_) {}));
     await _fb.auth.signOut();
+    _ref.read(locationControllerProvider.notifier).clearForNewLogin();
     _ref.invalidate(sessionRestoreProvider);
   }
 

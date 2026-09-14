@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/brisko_top_bar.dart';
 import '../auth/auth_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -14,9 +16,18 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).valueOrNull;
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.white,
+      body: Column(
+        children: [
+          BriskoTopBar(
+            title: 'Profile',
+            trailingIcon: Icons.settings_outlined,
+            onTrailingTap: () => _edit(context, ref, user?.name ?? '', user?.email ?? '', user?.phone ?? ''),
+            onBack: () => context.go('/home'),
+          ),
+          Expanded(
+            child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
         children: [
           AppCard(
             child: Row(
@@ -57,13 +68,28 @@ class ProfileScreen extends ConsumerWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                _tile(context, Icons.location_on_outlined, 'Addresses', () => context.push('/addresses')),
-                _tile(context, Icons.favorite_border, 'Wishlist', () => context.push('/wishlist')),
-                _tile(context, Icons.card_giftcard, 'Loyalty points', () => context.push('/loyalty')),
-                _tile(context, Icons.local_offer_outlined, 'Offers', () => context.push('/offers')),
-                _tile(context, Icons.notifications_outlined, 'Notifications', () => context.push('/notifications')),
-                _tile(context, Icons.support_agent, 'Support', () => context.push('/support')),
-                _tile(context, Icons.description_outlined, 'Policies', () => context.push('/policies'), last: true),
+                _tile(
+                  context,
+                  const HugeIcon(icon: HugeIcons.strokeRoundedLocation04, color: AppColors.black, size: 22),
+                  'Addresses',
+                  () => context.push('/addresses'),
+                ),
+                _tile(context, const Icon(Icons.favorite_border, color: AppColors.black), 'Wishlist', () => context.push('/wishlist')),
+                _tile(context, const Icon(Icons.card_giftcard, color: AppColors.black), 'Loyalty points', () => context.push('/loyalty')),
+                _tile(
+                  context,
+                  const HugeIcon(icon: HugeIcons.strokeRoundedDiscount01, color: AppColors.black, size: 22),
+                  'Offers',
+                  () => context.push('/offers'),
+                ),
+                _tile(
+                  context,
+                  const HugeIcon(icon: HugeIcons.strokeRoundedNotification01, color: AppColors.black, size: 22),
+                  'Notifications',
+                  () => context.push('/notifications'),
+                ),
+                _tile(context, const Icon(Icons.support_agent, color: AppColors.black), 'Support', () => context.push('/support')),
+                _tile(context, const Icon(Icons.description_outlined, color: AppColors.black), 'Policies', () => context.push('/policies'), last: true),
               ],
             ),
           ),
@@ -86,25 +112,23 @@ class ProfileScreen extends ConsumerWidget {
             child: const Text('Logout'),
           ),
         ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _tile(BuildContext context, IconData icon, String title, VoidCallback onTap, {bool last = false}) {
+  Widget _tile(BuildContext context, Widget icon, String title, VoidCallback onTap, {bool last = false}) {
     return Column(
       children: [
         ListTile(
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: AppColors.cream, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: AppColors.black),
-          ),
+          leading: icon,
           title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           trailing: const Icon(Icons.chevron_right),
           onTap: onTap,
         ),
-        if (!last) const Divider(height: 1, indent: 68),
+        if (!last) const Divider(height: 1, indent: 40),
       ],
     );
   }

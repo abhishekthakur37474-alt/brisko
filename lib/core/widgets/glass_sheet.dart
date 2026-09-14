@@ -9,10 +9,12 @@ Future<T?> showGlassSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool isScrollControlled = true,
+  bool useRootNavigator = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
+    useRootNavigator: useRootNavigator,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     barrierColor: AppColors.overlay,
