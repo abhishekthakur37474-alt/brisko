@@ -98,7 +98,7 @@ class OrderModel {
     }
     final orderStatus = _normalizeStatus((map['orderStatus'] ?? 'placed').toString());
     final paymentMethod = (map['paymentMethod'] ?? 'cod') as String;
-    final rawPaymentStatus = (map['paymentStatus'] ?? 'pending') as String;
+    final rawPaymentStatus = (map['paymentStatus'] ?? 'pending').toString().toLowerCase();
     // COD is collected on delivery. Older delivered orders may still carry a
     // stale "pending" value in the database, so derive the correct status here.
     final paymentStatus = (orderStatus == 'delivered' &&

@@ -37,7 +37,7 @@ $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin !== '' && in_array($origin, $config['cors']['allowed_origins'], true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Headers: Content-Type, Accept, Authorization');
-    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
     header('Vary: Origin');
 }
 

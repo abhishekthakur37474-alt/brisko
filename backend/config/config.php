@@ -103,6 +103,26 @@ if (!function_exists('brisko_config')) {
                 // Optional: enables the PHP side to also seed the RTDB user record.
                 'database_url' => env_value('FIREBASE_DATABASE_URL', ''),
             ],
+            'cashfree' => [
+                // Server-side only. NEVER expose these to Flutter or Firebase.
+                'client_id' => env_value('CASHFREE_CLIENT_ID', ''),
+                'client_secret' => env_value('CASHFREE_CLIENT_SECRET', ''),
+                // SANDBOX or PRODUCTION. The API base URL is derived from this.
+                'environment' => strtoupper((string) env_value('CASHFREE_ENVIRONMENT', 'SANDBOX')),
+                'api_version' => env_value('CASHFREE_API_VERSION', '2025-01-01'),
+                'timeout' => (int) env_value('CASHFREE_TIMEOUT', '20'),
+                // Optional. When set, used as order_meta.return_url on the order.
+                'return_url' => env_value('CASHFREE_RETURN_URL', ''),
+                'allowed_currencies' => env_list('CASHFREE_ALLOWED_CURRENCIES') ?: ['INR'],
+            ],
+            // Server-authoritative pricing. Must mirror the Flutter pricing so the
+            // amount paid is always the amount the server computed from the catalog.
+            'pricing' => [
+                'gst_rate' => (float) env_value('BRISKO_GST_RATE', '0.05'),
+                'free_delivery_threshold' => (float) env_value('BRISKO_FREE_DELIVERY_THRESHOLD', '499'),
+                'flat_delivery_fee' => (float) env_value('BRISKO_FLAT_DELIVERY_FEE', '40'),
+                'max_order_amount' => (float) env_value('BRISKO_MAX_ORDER_AMOUNT', '50000'),
+            ],
             'otp' => [
                 'expiry_seconds' => (int) env_value('OTP_EXPIRY_SECONDS', '300'),
                 'max_attempts' => (int) env_value('OTP_MAX_ATTEMPTS', '5'),

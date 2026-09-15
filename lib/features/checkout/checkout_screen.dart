@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,15 +11,18 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/services/cashfree_service.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/phone.dart';
+import '../../core/utils/pricing.dart';
 import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/price_row.dart';
 import '../addresses/address_controller.dart';
 import '../addresses/address_model.dart';
 import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
+import '../cart/cart_item.dart';
 import '../location/location_controller.dart';
 import '../location/store_closed_banner.dart';
 import '../location/store_status.dart';
@@ -38,9 +46,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _receiverEdited = false;
   bool _phoneEdited = false;
 
+  final _cashfree = CashfreeService();
+  final _cashfreeGateway = CFPaymentGatewayService();
+  String? _pendingOrderId;
+
   @override
   void initState() {
     super.initState();
+    _cashfreeGateway.setCallback(_onCashfreeVerify, _onCashfreeError);
     final savedAddress = ref.read(locationControllerProvider).address;
     final user = ref.read(currentUserProvider).valueOrNull;
     final savedName = savedAddress?.receiverName ?? '';
@@ -153,10 +166,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _PayOption(
                   icon: Icons.credit_card,
                   title: 'Online Payment',
-                  subtitle: 'UPI, cards & more · Temporarily unavailable',
+                  subtitle: 'UPI, cards, netbanking & more',
                   selected: _method == 'online',
                   onTap: () => setState(() => _method = 'online'),
-                  disabled: true,
                 ),
                 const SizedBox(height: 20),
                 _NotesCard(
@@ -194,78 +206,183 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             label: 'Place Order  •  ${rupees(price.finalAmount)}',
             loading: _loading,
             onPressed: canPlace
-                ? () async {
-                    if (_method == 'online') {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Online payment coming soon. Choose Cash on Delivery.')));
-                      return;
-                    }
-                    final receiver = _receiverName.text.trim();
-                    if (receiver.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receiver name is required')));
-                      return;
-                    }
-                    final receiverPhone = _receiverPhone.text.trim();
-                    if (receiverPhone.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receiver phone is required')));
-                      return;
-                    }
-                    if (!PhoneUtil.isValidIndianMobile(receiverPhone)) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid 10-digit mobile number')));
-                      return;
-                    }
-                    setState(() => _loading = true);
-                    try {
-                      final outlet = loc.outlet!;
-                      final AddressModel deliveryOrOutletAddress = isPickup
-                          ? AddressModel(
-                              id: 'pickup_${outlet.id}',
-                              label: loc.orderMode == OrderMode.dineIn ? 'Dine-In' : 'Pickup',
-                              receiverName: receiver,
-                              receiverPhone: receiverPhone,
-                              fullAddress: outlet.address,
-                              lat: outlet.lat,
-                              lng: outlet.lng,
-                              outletId: outlet.id,
-                              isDefault: true,
-                            )
-                          : (loc.address ??
-                              AddressModel(
-                                id: 'delivery_${outlet.id}',
-                                label: 'Delivery',
-                                receiverName: receiver,
-                                receiverPhone: receiverPhone,
-                                fullAddress: outlet.address,
-                                lat: outlet.lat,
-                                lng: outlet.lng,
-                                outletId: outlet.id,
-                                isDefault: true,
-                              ));
-                      final id = await ref.read(ordersControllerProvider).placeOrder(
-                            items: items,
-                            address: deliveryOrOutletAddress,
-                            outletId: outlet.id,
-                            price: price,
-                            paymentMethod: _method,
-                            notes: _notes.text,
-                            couponCode: coupon?.code,
-                            orderMode: loc.orderMode,
-                            receiverName: receiver,
-                            receiverPhone: receiverPhone,
-                          );
-                      if (context.mounted) context.go('/order-confirm/$id');
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                      }
-                    } finally {
-                      if (mounted) setState(() => _loading = false);
-                    }
-                  }
+                ? () => _placeOrder(
+                      loc: loc,
+                      items: items,
+                      price: price,
+                      couponCode: coupon?.code,
+                      isPickup: isPickup,
+                    )
                 : null,
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _placeOrder({
+    required LocationState loc,
+    required List<CartItem> items,
+    required PriceBreakdown price,
+    required String? couponCode,
+    required bool isPickup,
+  }) async {
+    final receiver = _receiverName.text.trim();
+    if (receiver.isEmpty) {
+      _snack('Receiver name is required');
+      return;
+    }
+    final receiverPhone = _receiverPhone.text.trim();
+    if (receiverPhone.isEmpty) {
+      _snack('Receiver phone is required');
+      return;
+    }
+    if (!PhoneUtil.isValidIndianMobile(receiverPhone)) {
+      _snack('Enter a valid 10-digit mobile number');
+      return;
+    }
+
+    final outlet = loc.outlet!;
+    final AddressModel deliveryOrOutletAddress = isPickup
+        ? AddressModel(
+            id: 'pickup_${outlet.id}',
+            label: loc.orderMode == OrderMode.dineIn ? 'Dine-In' : 'Pickup',
+            receiverName: receiver,
+            receiverPhone: receiverPhone,
+            fullAddress: outlet.address,
+            lat: outlet.lat,
+            lng: outlet.lng,
+            outletId: outlet.id,
+            isDefault: true,
+          )
+        : (loc.address ??
+            AddressModel(
+              id: 'delivery_${outlet.id}',
+              label: 'Delivery',
+              receiverName: receiver,
+              receiverPhone: receiverPhone,
+              fullAddress: outlet.address,
+              lat: outlet.lat,
+              lng: outlet.lng,
+              outletId: outlet.id,
+              isDefault: true,
+            ));
+
+    if (_method == 'online') {
+      await _payOnline(
+        loc: loc,
+        items: items,
+        address: deliveryOrOutletAddress,
+        outletId: outlet.id,
+        receiver: receiver,
+        receiverPhone: receiverPhone,
+        couponCode: couponCode,
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final id = await ref.read(ordersControllerProvider).placeOrder(
+            items: items,
+            address: deliveryOrOutletAddress,
+            outletId: outlet.id,
+            price: price,
+            paymentMethod: _method,
+            notes: _notes.text,
+            couponCode: couponCode,
+            orderMode: loc.orderMode,
+            receiverName: receiver,
+            receiverPhone: receiverPhone,
+          );
+      if (mounted) context.go('/order-confirm/$id');
+    } catch (e) {
+      if (mounted) _snack('$e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _payOnline({
+    required LocationState loc,
+    required List<CartItem> items,
+    required AddressModel address,
+    required String outletId,
+    required String receiver,
+    required String receiverPhone,
+    required String? couponCode,
+  }) async {
+    setState(() => _loading = true);
+    try {
+      final session = await _cashfree.createOrder(
+        items: items,
+        outletId: outletId,
+        address: address,
+        orderMode: loc.orderMode,
+        receiverName: receiver,
+        receiverPhone: receiverPhone,
+        notes: _notes.text,
+        couponCode: couponCode,
+        redeemLoyalty: ref.read(redeemLoyaltyProvider),
+      );
+
+      _pendingOrderId = session.orderId;
+
+      final cfSession = CFSessionBuilder()
+          .setEnvironment(_cashfree.environment)
+          .setOrderId(session.orderId)
+          .setPaymentSessionId(session.paymentSessionId)
+          .build();
+      final payment = CFWebCheckoutPaymentBuilder().setSession(cfSession).build();
+      _cashfreeGateway.doPayment(payment);
+    } on OnlinePaymentException catch (e) {
+      if (mounted) _snack(e.message);
+    } on CFException catch (e) {
+      if (mounted) _snack(e.message);
+    } catch (_) {
+      if (mounted) _snack('Unable to start payment. Please try again.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _onCashfreeVerify(String orderId) {
+    _verifyOnlinePayment(orderId.isEmpty ? _pendingOrderId : orderId);
+  }
+
+  void _onCashfreeError(CFErrorResponse errorResponse, String orderId) {
+    _verifyOnlinePayment(orderId.isEmpty ? _pendingOrderId : orderId);
+  }
+
+  Future<void> _verifyOnlinePayment(String? orderId) async {
+    if (orderId == null || orderId.isEmpty) {
+      _snack('Payment failed. Please try again.');
+      return;
+    }
+
+    _snack('Payment verification is in progress. Please wait.');
+
+    try {
+      final result = await _cashfree.verifyPayment(orderId);
+      if (!mounted) return;
+
+      if (result.paid) {
+        await ref.read(cartControllerProvider).clear();
+        ref.read(appliedCouponProvider.notifier).state = null;
+        ref.read(redeemLoyaltyProvider.notifier).state = false;
+        _pendingOrderId = null;
+        if (mounted) context.go('/order-confirm/$orderId');
+      } else {
+        _snack(result.message ?? 'Payment failed. Please try again.');
+      }
+    } catch (_) {
+      if (mounted) _snack('Payment verification is in progress. Please try again in a moment.');
+    }
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _pickupInfo(LocationState loc) {
