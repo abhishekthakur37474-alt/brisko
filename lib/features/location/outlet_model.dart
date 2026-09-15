@@ -12,6 +12,7 @@ class OutletModel {
   final String openTime;
   final String closeTime;
   final String googleMapsUrl;
+  final bool disableTiming;
 
   const OutletModel({
     required this.id,
@@ -25,6 +26,7 @@ class OutletModel {
     required this.openTime,
     required this.closeTime,
     this.googleMapsUrl = '',
+    this.disableTiming = false,
   });
 
   factory OutletModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -40,6 +42,7 @@ class OutletModel {
       openTime: (map['openTime'] ?? '11:00') as String,
       closeTime: (map['closeTime'] ?? '23:00') as String,
       googleMapsUrl: (map['googleMapsUrl'] ?? '') as String,
+      disableTiming: map['disableTiming'] == true,
     );
   }
 
@@ -52,11 +55,13 @@ class OutletModel {
     return '';
   }
 
-  bool isOpenAt(DateTime now) => StoreHours.isOpenAt(now, openTime, closeTime);
+  bool isOpenAt(DateTime now) =>
+      disableTiming || StoreHours.isOpenAt(now, openTime, closeTime);
 
   DateTime nextOpeningAt(DateTime now) => StoreHours.nextOpeningAt(now, openTime, closeTime);
 
-  String get hoursLabel => '${StoreHours.format12h(openTime)} – ${StoreHours.format12h(closeTime)}';
+  String get hoursLabel =>
+      disableTiming ? 'Open 24/7' : '${StoreHours.format12h(openTime)} – ${StoreHours.format12h(closeTime)}';
 
   Map<String, dynamic> toMap() => {
         'name': name,
@@ -69,5 +74,6 @@ class OutletModel {
         'openTime': openTime,
         'closeTime': closeTime,
         'googleMapsUrl': googleMapsUrl,
+        'disableTiming': disableTiming,
       };
 }

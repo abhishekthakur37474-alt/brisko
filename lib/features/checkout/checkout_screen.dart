@@ -314,7 +314,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           const Icon(Icons.access_time, size: 14, color: AppColors.muted),
                           const SizedBox(width: 5),
                           Text(
-                            '${outlet.openTime} – ${outlet.closeTime}',
+                            outlet.hoursLabel,
                             style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
                           ),
                         ],

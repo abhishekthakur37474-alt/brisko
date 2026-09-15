@@ -9,7 +9,7 @@ Future<T?> showGlassSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool isScrollControlled = true,
-  bool useRootNavigator = false,
+  bool useRootNavigator = true,
 }) {
   return showModalBottomSheet<T>(
     context: context,

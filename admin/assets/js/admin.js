@@ -53,6 +53,20 @@
     update();
   });
 
+  document.querySelectorAll('[data-schedule-toggle]').forEach(function (toggle) {
+    var fields = document.getElementById('scheduleFields');
+    if (!fields) return;
+    function sync() {
+      var off = toggle.checked;
+      fields.style.opacity = off ? '0.5' : '';
+      fields.querySelectorAll('select, input').forEach(function (field) {
+        field.disabled = off;
+      });
+    }
+    toggle.addEventListener('change', sync);
+    sync();
+  });
+
   document.addEventListener('click', function (e) {
     var addBtn = e.target.closest('.option-add');
     if (addBtn) {

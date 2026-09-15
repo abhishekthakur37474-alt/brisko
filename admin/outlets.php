@@ -90,6 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($id === '') {
                 $id = brisko_slug($name);
             }
+            $disableTiming = isset($_POST['disableTiming']);
+            $existing = $disableTiming ? brisko_map($rtdb->get('outlets/' . $id)) : [];
+            $openTime = brisko_time_from_request('open', (string) ($existing['openTime'] ?? '11:00 AM'));
+            $closeTime = brisko_time_from_request('close', (string) ($existing['closeTime'] ?? '11:00 PM'));
             $rtdb->put('outlets/' . $id, [
                 'name' => $name,
                 'address' => trim((string) ($_POST['address'] ?? '')),
@@ -98,8 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'serviceRadiusKm' => (float) ($_POST['serviceRadiusKm'] ?? 5),
                 'isActive' => isset($_POST['isActive']),
                 'contactNumber' => trim((string) ($_POST['contactNumber'] ?? '')),
-                'openTime' => brisko_time_from_request('open', '11:00 AM'),
-                'closeTime' => brisko_time_from_request('close', '11:00 PM'),
+                'openTime' => $openTime,
+                'closeTime' => $closeTime,
+                'disableTiming' => $disableTiming,
                 'googleMapsUrl' => trim((string) ($_POST['googleMapsUrl'] ?? '')),
             ]);
             brisko_flash('success', 'Outlet saved.');
@@ -146,7 +151,14 @@ require __DIR__ . '/includes/header.php';
                     <?php endif; ?>
                 </td>
                 <td><?= brisko_h((string) ($o['serviceRadiusKm'] ?? '')) ?> km</td>
-                <td><?= brisko_h(brisko_format_time_12h((string) ($o['openTime'] ?? ''))) ?> – <?= brisko_h(brisko_format_time_12h((string) ($o['closeTime'] ?? ''))) ?></td>
+                <td>
+                    <?php if (($o['disableTiming'] ?? false) === true): ?>
+                        <span class="badge text-bg-success">Always open</span>
+                        <div class="text-muted small">Timing disabled</div>
+                    <?php else: ?>
+                        <?= brisko_h(brisko_format_time_12h((string) ($o['openTime'] ?? ''))) ?> – <?= brisko_h(brisko_format_time_12h((string) ($o['closeTime'] ?? ''))) ?>
+                    <?php endif; ?>
+                </td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-dark" href="outlets.php?edit=<?= brisko_h((string) $id) ?>">Edit</a>
                     <form method="post" class="d-inline" onsubmit="return confirm('Delete this outlet?')">
@@ -185,15 +197,22 @@ require __DIR__ . '/includes/header.php';
                         <input class="form-control" id="outMapUrl" name="googleMapsUrl" type="url" placeholder="https://maps.app.goo.gl/..." value="<?= brisko_h((string) ($edit['googleMapsUrl'] ?? '')) ?>">
                         <div class="form-text">Shown to customers on Takeaway &amp; Dine-In order details.</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Opening time</label>
-                        <?= brisko_time_select('open', $openParts) ?>
-                        <div class="form-text">Opens at <span id="openPreview"><?= brisko_h(brisko_format_time_12h((string) ($edit['openTime'] ?? '11:00 AM'))) ?></span></div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" name="disableTiming" id="disableTiming" data-schedule-toggle <?= ($edit['disableTiming'] ?? false) === true ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="disableTiming">Disable opening &amp; closing time</label>
+                        <div class="form-text">When on, the outlet stays open 24/7 and the opening/closing schedule is ignored.</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Closing time</label>
-                        <?= brisko_time_select('close', $closeParts) ?>
-                        <div class="form-text">Closes at <span id="closePreview"><?= brisko_h(brisko_format_time_12h((string) ($edit['closeTime'] ?? '11:00 PM'))) ?></span></div>
+                    <div id="scheduleFields">
+                        <div class="mb-3">
+                            <label class="form-label">Opening time</label>
+                            <?= brisko_time_select('open', $openParts) ?>
+                            <div class="form-text">Opens at <span id="openPreview"><?= brisko_h(brisko_format_time_12h((string) ($edit['openTime'] ?? '11:00 AM'))) ?></span></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Closing time</label>
+                            <?= brisko_time_select('close', $closeParts) ?>
+                            <div class="form-text">Closes at <span id="closePreview"><?= brisko_h(brisko_format_time_12h((string) ($edit['closeTime'] ?? '11:00 PM'))) ?></span></div>
+                        </div>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="isActive" id="isActive" <?= ($edit['isActive'] ?? true) ? 'checked' : '' ?>>
