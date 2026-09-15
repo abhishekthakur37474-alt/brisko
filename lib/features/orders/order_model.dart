@@ -1,5 +1,6 @@
 import '../cart/cart_item.dart';
 import '../addresses/address_model.dart';
+import '../location/location_controller.dart';
 
 const orderStatuses = [
   'placed',
@@ -33,6 +34,8 @@ class OrderModel {
   final int createdAt;
   final int updatedAt;
   final String? invoiceUrl;
+  // How the customer gets the order: delivery / takeaway / dineIn.
+  final OrderMode orderType;
 
   const OrderModel({
     required this.id,
@@ -56,6 +59,7 @@ class OrderModel {
     required this.createdAt,
     required this.updatedAt,
     this.invoiceUrl,
+    this.orderType = OrderMode.delivery,
   });
 
   factory OrderModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -108,6 +112,7 @@ class OrderModel {
       createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
       updatedAt: (map['updatedAt'] as num?)?.toInt() ?? 0,
       invoiceUrl: map['invoiceUrl'] as String?,
+      orderType: _parseOrderType(map['orderType']),
     );
   }
 
@@ -139,10 +144,19 @@ class OrderModel {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'invoiceUrl': invoiceUrl,
+      'orderType': orderType.name,
     };
   }
 
   bool get canCancel => orderStatus == 'placed' || orderStatus == 'confirmed';
+
+  static OrderMode _parseOrderType(dynamic raw) {
+    final s = (raw ?? '').toString().trim();
+    for (final mode in OrderMode.values) {
+      if (mode.name == s) return mode;
+    }
+    return OrderMode.delivery;
+  }
 
   static String _normalizeStatus(String raw) {
     final s = raw.toLowerCase().trim().replaceAll(' ', '_');

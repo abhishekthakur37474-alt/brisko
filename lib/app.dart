@@ -11,7 +11,6 @@ import 'features/addresses/detect_address_screen.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/otp_screen.dart';
-import 'features/auth/register_screen.dart';
 import 'features/cart/cart_screen.dart';
 import 'features/checkout/checkout_screen.dart';
 import 'features/home/home_screen.dart';
@@ -62,7 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final path = state.matchedLocation;
       final user = FirebaseAuth.instance.currentUser ?? auth.valueOrNull;
       // Routes that a signed-out user must be able to reach (mobile OTP flow).
-      const publicPaths = {'/login', '/otp', '/register'};
+      const publicPaths = {'/login', '/otp'};
 
       if ((restore.isLoading && user == null) || loc.restoring) {
         return path == '/' ? null : '/';
@@ -74,12 +73,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
       if (path == '/login') return '/location';
-      if (path == '/otp' || path == '/register') return null;
+      if (path == '/otp') return null;
       if (path == '/') {
         if (loc.outlet == null) return '/location';
         return '/home';
       }
-      if (loc.outlet == null && path != '/location' && path != '/addresses' && path != '/register') {
+      if (loc.outlet == null && path != '/location' && path != '/addresses') {
         return '/location';
       }
       return null;
@@ -94,7 +93,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: OtpScreen(mobile: s.uri.queryParameters['mobile'] ?? ''),
         ),
       ),
-      GoRoute(path: '/register', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const RegisterScreen())),
       GoRoute(path: '/location', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const LocationScreen())),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),

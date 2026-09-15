@@ -25,7 +25,7 @@ class MenuScreen extends ConsumerStatefulWidget {
 class _MenuScreenState extends ConsumerState<MenuScreen> {
   String? _cat;
   bool _vegOnly = false;
-  bool _nonVegOnly = false;
+  bool _noOnionGarlicOnly = false;
   MenuSort _sort = MenuSort.popularity;
 
   @override
@@ -38,10 +38,11 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
   List<ProductModel> _applyFilters(List<ProductModel> products, String? outletId, String? catId) {
     var list = products.where((p) => p.availableAt(outletId)).toList();
     if (catId != null) list = list.where((p) => p.categoryId == catId).toList();
-    if (_vegOnly && !_nonVegOnly) {
+    if (_vegOnly) {
       list = list.where((p) => p.isVeg).toList();
-    } else if (_nonVegOnly && !_vegOnly) {
-      list = list.where((p) => !p.isVeg).toList();
+    }
+    if (_noOnionGarlicOnly) {
+      list = list.where((p) => p.noOnionGarlic).toList();
     }
     list.sort((a, b) {
       switch (_sort) {
@@ -105,9 +106,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             ),
           MenuFilterRow(
             vegOnly: _vegOnly,
-            nonVegOnly: _nonVegOnly,
+            noOnionGarlicOnly: _noOnionGarlicOnly,
             onVegToggle: () => setState(() => _vegOnly = !_vegOnly),
-            onNonVegToggle: () => setState(() => _nonVegOnly = !_nonVegOnly),
+            onNoOnionGarlicToggle: () => setState(() => _noOnionGarlicOnly = !_noOnionGarlicOnly),
             onSortTap: () async {
               final selected = await showMenuSortSheet(context, _sort);
               if (selected != null && mounted) setState(() => _sort = selected);
@@ -127,7 +128,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                           icon: Icons.restaurant_outlined,
                         )
                       : KeyedSubtree(
-                          key: ValueKey('$catId-$_vegOnly-$_nonVegOnly-$_sort-${list.length}'),
+                          key: ValueKey('$catId-$_vegOnly-$_noOnionGarlicOnly-$_sort-${list.length}'),
                           child: wideLayout
                               ? ListView.separated(
                                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 140),

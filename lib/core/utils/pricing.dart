@@ -43,12 +43,14 @@ class Pricing {
     int? requestedPoints,
     bool isFirstOrder = false,
     int couponUsageCount = 0,
+    // true for takeaway/dine-in — no rider involved, so no delivery fee.
+    bool isPickup = false,
   }) {
     final subtotal = items.fold<double>(0, (sum, item) => sum + item.totalPrice);
     final gstAmount = double.parse((subtotal * AppStrings.gstRate).toStringAsFixed(2));
-    final deliveryCharge = subtotal >= AppStrings.freeDeliveryThreshold
+    final deliveryCharge = isPickup
         ? 0.0
-        : AppStrings.flatDeliveryFee;
+        : (subtotal >= AppStrings.freeDeliveryThreshold ? 0.0 : AppStrings.flatDeliveryFee);
 
     var couponDiscount = 0.0;
     if (coupon != null && coupon.isValidNow) {

@@ -83,11 +83,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       final result = await ref.read(otpAuthServiceProvider).verifyOtp(mobile: widget.mobile, otp: code);
       await ref.read(authControllerProvider).signInWithCustomToken(result.customToken, phone: widget.mobile);
       if (!mounted) return;
-      if (result.isNewUser) {
-        context.go('/register');
-      } else {
-        context.go('/location');
-      }
+      context.go('/location');
     } on OtpException catch (e) {
       setState(() => _error = e.message);
       _otp.clear();

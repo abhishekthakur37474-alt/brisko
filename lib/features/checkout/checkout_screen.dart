@@ -49,7 +49,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     final minPoints = loyalty?.minPointsToRedeem ?? 50;
     final canRedeem = (user?.loyaltyPoints ?? 0) >= minPoints;
-    final canPlace = loc.outlet != null && loc.address != null && items.isNotEmpty;
+    final isPickup = loc.orderMode != OrderMode.delivery;
+    final canPlace = loc.outlet != null && (isPickup || loc.address != null) && items.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -64,7 +65,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                _deliveryAddress(loc, addresses),
+                isPickup ? _pickupInfo(loc) : _deliveryAddress(loc, addresses),
                 const SizedBox(height: 24),
                 const _SectionTitle('Loyalty points'),
                 const SizedBox(height: 10),
@@ -138,14 +139,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     }
                     setState(() => _loading = true);
                     try {
+                      final fallbackAddress = loc.address ??
+                          AddressModel(
+                            id: 'pickup_${loc.outlet!.id}',
+                            label: isPickup ? 'Pickup' : 'Delivery',
+                            fullAddress: loc.outlet!.address,
+                            lat: loc.outlet!.lat,
+                            lng: loc.outlet!.lng,
+                            outletId: loc.outlet!.id,
+                            isDefault: true,
+                          );
                       final id = await ref.read(ordersControllerProvider).placeOrder(
                             items: items,
-                            address: loc.address!,
+                            address: fallbackAddress,
                             outletId: loc.outlet!.id,
                             price: price,
                             paymentMethod: _method,
                             notes: _notes.text,
                             couponCode: coupon?.code,
+                            orderMode: loc.orderMode,
                           );
                       if (context.mounted) context.go('/order-confirm/$id');
                     } catch (e) {
@@ -160,6 +172,85 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _pickupInfo(LocationState loc) {
+    final outlet = loc.outlet;
+    final isDineIn = loc.orderMode == OrderMode.dineIn;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(isDineIn ? 'Dine-In outlet' : 'Pickup outlet'),
+        const SizedBox(height: 10),
+        _SoftCard(
+          padding: const EdgeInsets.all(14),
+          borderColor: outlet != null ? AppColors.primary.withValues(alpha: 0.35) : null,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(
+                  child: Icon(Icons.storefront_outlined, color: AppColors.primary, size: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      outlet?.name ?? 'No outlet selected',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15.5, color: AppColors.text),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      outlet?.address ?? '',
+                      style: GoogleFonts.inter(fontSize: 13, height: 1.4, color: AppColors.muted),
+                    ),
+                    if (outlet != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 14, color: AppColors.muted),
+                          const SizedBox(width: 5),
+                          Text(
+                            '${outlet.openTime} – ${outlet.closeTime}',
+                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Text(
+                      isDineIn ? "You'll eat in at the outlet." : "You'll collect the order at the outlet.",
+                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => context.push('/location'),
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Text(
+                    'Change',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.primary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

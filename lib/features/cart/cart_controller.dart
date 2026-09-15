@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/services/firebase_service.dart';
 import '../../core/utils/pricing.dart';
 import '../auth/auth_controller.dart';
+import '../location/location_controller.dart';
 import '../loyalty/loyalty_config.dart';
 import '../offers_coupons/coupon_model.dart';
 import 'cart_item.dart';
@@ -121,6 +122,7 @@ final priceBreakdownProvider = Provider<PriceBreakdown>((ref) {
   final user = ref.watch(currentUserProvider).valueOrNull;
   final loyalty = ref.watch(loyaltyConfigProvider).valueOrNull;
   final ordersCount = ref.watch(userOrderCountProvider).valueOrNull ?? 0;
+  final orderMode = ref.watch(locationControllerProvider).orderMode;
   return Pricing.compute(
     items: items,
     coupon: coupon,
@@ -128,6 +130,7 @@ final priceBreakdownProvider = Provider<PriceBreakdown>((ref) {
     availablePoints: user?.loyaltyPoints ?? 0,
     redeemLoyalty: redeem,
     isFirstOrder: ordersCount == 0,
+    isPickup: orderMode != OrderMode.delivery,
   );
 });
 

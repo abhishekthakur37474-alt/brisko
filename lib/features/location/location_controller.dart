@@ -20,14 +20,22 @@ final outletsProvider = StreamProvider<List<OutletModel>>((ref) {
 
 enum LocationUiStatus { idle, loading, detected, denied, deniedForever, gpsOff, failed, noCoverage }
 
+/// How the user will get their order once an outlet is resolved.
+/// `delivery` only valid when the detected point falls inside the
+/// outlet's serviceRadiusKm; otherwise user must pick takeaway/dineIn.
+enum OrderMode { delivery, takeaway, dineIn }
+
 class LocationState {
   final AddressModel? address;
   final OutletModel? outlet;
   final bool loading;
   final bool restoring;
   final String? error;
+  // true when the detected point is OUTSIDE every outlet's serviceRadiusKm.
+  // `outlet` may still be set (nearest outlet) so takeaway/dineIn can proceed.
   final bool noCoverage;
   final LocationUiStatus status;
+  final OrderMode orderMode;
 
   const LocationState({
     this.address,
@@ -37,7 +45,11 @@ class LocationState {
     this.error,
     this.noCoverage = false,
     this.status = LocationUiStatus.idle,
+    this.orderMode = OrderMode.delivery,
   });
+
+  // Delivery is only offered when an outlet was matched WITHIN its radius.
+  bool get deliveryAvailable => outlet != null && !noCoverage;
 
   LocationState copyWith({
     AddressModel? address,
@@ -47,6 +59,7 @@ class LocationState {
     String? error,
     bool? noCoverage,
     LocationUiStatus? status,
+    OrderMode? orderMode,
     bool clearError = false,
     bool clearOutlet = false,
   }) {
@@ -58,6 +71,7 @@ class LocationState {
       error: clearError ? null : (error ?? this.error),
       noCoverage: noCoverage ?? this.noCoverage,
       status: status ?? this.status,
+      orderMode: orderMode ?? this.orderMode,
     );
   }
 }
@@ -110,6 +124,7 @@ class LocationController extends StateNotifier<LocationState> {
     }
   }
 
+  /// Outlet whose serviceRadiusKm covers (lat, lng). Used for delivery.
   OutletModel? matchOutlet(double lat, double lng, List<OutletModel> outlets) {
     final matches = <(OutletModel, double)>[];
     for (final o in outlets) {
@@ -119,6 +134,29 @@ class LocationController extends StateNotifier<LocationState> {
     if (matches.isEmpty) return null;
     matches.sort((a, b) => a.$2.compareTo(b.$2));
     return matches.first.$1;
+  }
+
+  /// Closest outlet by distance, radius ignored. Used to offer
+  /// takeaway/dineIn when nobody's serviceRadiusKm covers the user.
+  OutletModel? nearestOutlet(double lat, double lng, List<OutletModel> outlets) {
+    if (outlets.isEmpty) return null;
+    OutletModel best = outlets.first;
+    double bestD = haversineKm(lat, lng, best.lat, best.lng);
+    for (final o in outlets.skip(1)) {
+      final d = haversineKm(lat, lng, o.lat, o.lng);
+      if (d < bestD) {
+        best = o;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /// User explicitly picks how they'll get the order. Only meaningful
+  /// after an outlet (in or out of radius) has been resolved.
+  void setOrderMode(OrderMode mode) {
+    if (!mounted || state.outlet == null) return;
+    state = state.copyWith(orderMode: mode);
   }
 
   Future<void> detect() async {
@@ -185,7 +223,10 @@ class LocationController extends StateNotifier<LocationState> {
     try {
       outlets = await ref.read(outletsProvider.future).timeout(const Duration(seconds: 8));
     } catch (_) {}
+    // Step 1: strict match — outlet's serviceRadiusKm actually covers this point.
     var outlet = matchOutlet(lat, lng, outlets);
+    var withinRadius = outlet != null;
+
     if (outlet == null && savedOutletId != null && savedOutletId.isNotEmpty) {
       outlet = outlets.where((o) => o.id == savedOutletId).firstOrNull ??
           OutletModel(
@@ -200,7 +241,17 @@ class LocationController extends StateNotifier<LocationState> {
             openTime: '11:00',
             closeTime: '23:30',
           );
+      // Previously-saved outlet for this address; treat as a covered spot.
+      withinRadius = outlet != null;
     }
+
+    // Step 2: nothing within radius — resolve nearest outlet anyway (ignoring
+    // radius) so the user can still order Takeaway / Dine-In there.
+    if (outlet == null) {
+      outlet = nearestOutlet(lat, lng, outlets);
+      withinRadius = false;
+    }
+
     final address = AddressModel(
       id: id ?? 'loc_${DateTime.now().millisecondsSinceEpoch}',
       label: label,
@@ -210,7 +261,9 @@ class LocationController extends StateNotifier<LocationState> {
       outletId: outlet?.id,
       isDefault: true,
     );
+
     if (outlet == null) {
+      // No outlets configured at all — genuinely nothing we can offer.
       state = LocationState(
         address: address,
         loading: false,
@@ -220,28 +273,36 @@ class LocationController extends StateNotifier<LocationState> {
       );
       return;
     }
-    await _persist(address, outlet);
+
+    if (withinRadius) await _persist(address, outlet);
     state = LocationState(
       address: address,
       outlet: outlet,
       loading: false,
       restoring: false,
-      status: LocationUiStatus.detected,
+      noCoverage: !withinRadius,
+      orderMode: OrderMode.delivery,
+      status: withinRadius ? LocationUiStatus.detected : LocationUiStatus.noCoverage,
     );
   }
 
   void setFromSaved(AddressModel address, List<OutletModel> outlets) {
-    final outlet = address.outletId == null
+    var outlet = address.outletId == null
         ? matchOutlet(address.lat, address.lng, outlets)
         : outlets.where((o) => o.id == address.outletId).firstOrNull ??
             matchOutlet(address.lat, address.lng, outlets);
-    _persist(address, outlet);
+    final withinRadius = outlet != null;
+    outlet ??= nearestOutlet(address.lat, address.lng, outlets);
+    if (withinRadius) _persist(address, outlet);
     state = LocationState(
       address: address,
       outlet: outlet,
       restoring: false,
-      noCoverage: outlet == null,
-      status: outlet == null ? LocationUiStatus.noCoverage : LocationUiStatus.detected,
+      noCoverage: !withinRadius,
+      orderMode: OrderMode.delivery,
+      status: outlet == null
+          ? LocationUiStatus.noCoverage
+          : (withinRadius ? LocationUiStatus.detected : LocationUiStatus.noCoverage),
     );
   }
 }

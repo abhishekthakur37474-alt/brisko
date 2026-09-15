@@ -125,7 +125,19 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                                   onDetect: () => ref.read(locationControllerProvider.notifier).detect(),
                                   onManual: _openManual,
                                   onContinue: () {
-                                    if (loc.outlet != null) context.go('/home');
+                                    if (loc.outlet == null) return;
+                                    ref.read(locationControllerProvider.notifier).setOrderMode(OrderMode.delivery);
+                                    context.go('/home');
+                                  },
+                                  onTakeaway: () {
+                                    if (loc.outlet == null) return;
+                                    ref.read(locationControllerProvider.notifier).setOrderMode(OrderMode.takeaway);
+                                    context.go('/home');
+                                  },
+                                  onDineIn: () {
+                                    if (loc.outlet == null) return;
+                                    ref.read(locationControllerProvider.notifier).setOrderMode(OrderMode.dineIn);
+                                    context.go('/home');
                                   },
                                   onChange: () {
                                     _closeManual();
@@ -216,6 +228,8 @@ class _StatusBody extends StatelessWidget {
   final VoidCallback onDetect;
   final VoidCallback onManual;
   final VoidCallback onContinue;
+  final VoidCallback onTakeaway;
+  final VoidCallback onDineIn;
   final VoidCallback onChange;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenGps;
@@ -227,6 +241,8 @@ class _StatusBody extends StatelessWidget {
     required this.onDetect,
     required this.onManual,
     required this.onContinue,
+    required this.onTakeaway,
+    required this.onDineIn,
     required this.onChange,
     required this.onOpenSettings,
     required this.onOpenGps,
@@ -250,12 +266,22 @@ class _StatusBody extends StatelessWidget {
           onChange: onChange,
         );
       case LocationUiStatus.noCoverage:
-        return _CopyBlock(
-          title: "We're not delivering here yet",
-          body: 'This location is currently outside our delivery area. Try another address or check available takeaway options.',
-          cta: 'Choose another location',
-          onCta: onChange,
-          onManual: onManual,
+        if (loc.outlet == null) {
+          // No outlets configured anywhere — genuinely nothing to offer.
+          return _CopyBlock(
+            title: "We're not delivering here yet",
+            body: 'This location is currently outside our delivery area. Try another address.',
+            cta: 'Choose another location',
+            onCta: onChange,
+            onManual: onManual,
+          );
+        }
+        return _PickupCard(
+          outletName: loc.outlet!.name,
+          outletAddress: loc.outlet!.address,
+          onTakeaway: onTakeaway,
+          onDineIn: onDineIn,
+          onChange: onChange,
         );
       case LocationUiStatus.denied:
         return _CopyBlock(
@@ -532,6 +558,121 @@ class _DetectedCard extends StatelessWidget {
           onPressed: onChange,
           child: const Text(
             'Change location',
+            style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w500, fontSize: 15),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PickupCard extends StatelessWidget {
+  final String outletName;
+  final String outletAddress;
+  final VoidCallback onTakeaway;
+  final VoidCallback onDineIn;
+  final VoidCallback onChange;
+
+  const _PickupCard({
+    required this.outletName,
+    required this.outletAddress,
+    required this.onTakeaway,
+    required this.onDineIn,
+    required this.onChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          "We're not delivering here yet",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.black),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          "You're outside our delivery area, but you can still order from the outlet below.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE5E5E2)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(color: Color(0xFFFCEAE6), shape: BoxShape.circle),
+                child: const Icon(Icons.storefront_outlined, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                outletName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.black),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                outletAddress,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 56,
+          width: double.infinity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(999)),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTakeaway,
+                borderRadius: BorderRadius.circular(999),
+                child: const Center(
+                  child: Text('Order Takeaway', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 56,
+          width: double.infinity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppColors.primary, width: 1.4),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onDineIn,
+                borderRadius: BorderRadius.circular(999),
+                child: const Center(
+                  child: Text('Dine-In', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: onChange,
+          child: const Text(
+            'Choose another location',
             style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w500, fontSize: 15),
           ),
         ),

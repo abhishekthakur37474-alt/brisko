@@ -106,46 +106,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
-              SliverToBoxAdapter(
-                child: FadeSlideIn(
-                  delay: AppMotion.stagger,
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 168,
-                        child: PageView.builder(
-                          onPageChanged: (i) => setState(() => _banner = i),
-                          itemCount: 3,
-                          itemBuilder: (_, i) {
-                            const banners = [
-                              _Banner(title: 'Hot. Fresh. Fast.', subtitle: 'Free delivery over Rs 499', color: AppColors.primary, icon: Icons.local_shipping_outlined),
-                              _Banner(title: 'Use BRISKO50', subtitle: 'Flat Rs 50 off your next order', color: AppColors.black, hugeIcon: HugeIcons.strokeRoundedDiscount01),
-                              _Banner(title: 'Loyalty rewards', subtitle: 'Earn points on every order', color: Color(0xFF7A1010), icon: Icons.card_giftcard),
-                            ];
-                            return banners[i];
-                          },
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          3,
-                          (i) => AnimatedContainer(
-                            duration: AppMotion.fast,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: _banner == i ? 18 : 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: _banner == i ? AppColors.primary : AppColors.border,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Banner carousel — commented out per request.
+              // SliverToBoxAdapter(
+              //   child: FadeSlideIn(
+              //     delay: AppMotion.stagger,
+              //     child: Column(
+              //       children: [
+              //         SizedBox(
+              //           height: 168,
+              //           child: PageView.builder(
+              //             onPageChanged: (i) => setState(() => _banner = i),
+              //             itemCount: 3,
+              //             itemBuilder: (_, i) {
+              //               const banners = [
+              //                 _Banner(title: 'Hot. Fresh. Fast.', subtitle: 'Free delivery over Rs 499', color: AppColors.primary, icon: Icons.local_shipping_outlined),
+              //                 _Banner(title: 'Use BRISKO50', subtitle: 'Flat Rs 50 off your next order', color: AppColors.black, hugeIcon: HugeIcons.strokeRoundedDiscount01),
+              //                 _Banner(title: 'Loyalty rewards', subtitle: 'Earn points on every order', color: Color(0xFF7A1010), icon: Icons.card_giftcard),
+              //               ];
+              //               return banners[i];
+              //             },
+              //           ),
+              //         ),
+              //         Row(
+              //           mainAxisAlignment: MainAxisAlignment.center,
+              //           children: List.generate(
+              //             3,
+              //             (i) => AnimatedContainer(
+              //               duration: AppMotion.fast,
+              //               margin: const EdgeInsets.symmetric(horizontal: 3),
+              //               width: _banner == i ? 18 : 7,
+              //               height: 7,
+              //               decoration: BoxDecoration(
+              //                 color: _banner == i ? AppColors.primary : AppColors.border,
+              //                 borderRadius: BorderRadius.circular(8),
+              //               ),
+              //             ),
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // ),
               catsAsync.when(
                 data: (cats) => SliverToBoxAdapter(
                   child: FadeSlideIn(

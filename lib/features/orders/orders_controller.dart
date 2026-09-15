@@ -7,6 +7,7 @@ import '../addresses/address_model.dart';
 import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
 import '../cart/cart_item.dart';
+import '../location/location_controller.dart';
 import 'order_model.dart';
 
 final userOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
@@ -50,6 +51,7 @@ class OrdersController {
     required String paymentMethod,
     required String notes,
     String? couponCode,
+    OrderMode orderMode = OrderMode.delivery,
   }) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
     if (uid == null) throw Exception('Login required');
@@ -88,6 +90,7 @@ class OrdersController {
       orderNotes: notes,
       createdAt: now,
       updatedAt: now,
+      orderType: orderMode,
     );
 
     final updates = <String, dynamic>{

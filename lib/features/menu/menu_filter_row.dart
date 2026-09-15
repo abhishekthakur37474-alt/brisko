@@ -65,17 +65,17 @@ Future<MenuSort?> showMenuSortSheet(BuildContext context, MenuSort current) {
 
 class MenuFilterRow extends StatelessWidget {
   final bool vegOnly;
-  final bool nonVegOnly;
+  final bool noOnionGarlicOnly;
   final VoidCallback onVegToggle;
-  final VoidCallback onNonVegToggle;
+  final VoidCallback onNoOnionGarlicToggle;
   final VoidCallback onSortTap;
 
   const MenuFilterRow({
     super.key,
     required this.vegOnly,
-    required this.nonVegOnly,
+    required this.noOnionGarlicOnly,
     required this.onVegToggle,
-    required this.onNonVegToggle,
+    required this.onNoOnionGarlicToggle,
     required this.onSortTap,
   });
 
@@ -96,11 +96,11 @@ class MenuFilterRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           _FilterChip(
-            label: 'Non Veg',
-            selected: nonVegOnly,
-            activeColor: AppColors.nonVeg,
-            icon: const _NonVegMark(),
-            onTap: onNonVegToggle,
+            label: 'No Onion Garlic',
+            selected: noOnionGarlicOnly,
+            activeColor: AppColors.primary,
+            icon: const Icon(Icons.eco_outlined, size: 15, color: AppColors.muted),
+            onTap: onNoOnionGarlicToggle,
           ),
           const SizedBox(width: 8),
           _FilterChip(
@@ -187,43 +187,4 @@ class _VegDot extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NonVegMark extends StatelessWidget {
-  const _NonVegMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 13,
-      height: 13,
-      child: CustomPaint(painter: _TriangleOutlinePainter(AppColors.nonVeg)),
-    );
-  }
-}
-
-class _TriangleOutlinePainter extends CustomPainter {
-  final Color color;
-  const _TriangleOutlinePainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width / 2, 1)
-      ..lineTo(size.width - 1, size.height - 1)
-      ..lineTo(1, size.height - 1)
-      ..close();
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.3
-        ..strokeJoin = StrokeJoin.round,
-    );
-    canvas.drawCircle(Offset(size.width / 2, size.height * 0.62), 1.5, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _TriangleOutlinePainter oldDelegate) => oldDelegate.color != color;
 }

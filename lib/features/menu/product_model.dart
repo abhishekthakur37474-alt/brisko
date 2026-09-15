@@ -24,6 +24,7 @@ class ProductModel {
   final List<String> images;
   final double basePrice;
   final bool isVeg;
+  final bool noOnionGarlic;
   final bool isBestSeller;
   final bool isFeatured;
   final bool isActive;
@@ -43,6 +44,7 @@ class ProductModel {
     required this.images,
     required this.basePrice,
     required this.isVeg,
+    this.noOnionGarlic = false,
     this.isBestSeller = false,
     this.isFeatured = false,
     this.isActive = true,
@@ -97,6 +99,7 @@ class ProductModel {
       images: images,
       basePrice: (map['basePrice'] as num?)?.toDouble() ?? 0,
       isVeg: map['isVeg'] != false,
+      noOnionGarlic: map['noOnionGarlic'] == true,
       isBestSeller: map['isBestSeller'] == true,
       isFeatured: map['isFeatured'] == true,
       isActive: map['isActive'] != false,
@@ -129,6 +132,7 @@ class ProductModel {
       'images': imagesMap,
       'basePrice': basePrice,
       'isVeg': isVeg,
+      'noOnionGarlic': noOnionGarlic,
       'isBestSeller': isBestSeller,
       'isFeatured': isFeatured,
       'isActive': isActive,
