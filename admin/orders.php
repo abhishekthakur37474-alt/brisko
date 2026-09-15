@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stKeep = trim((string) ($_POST['filter_status'] ?? ''));
     $outKeep = trim((string) ($_POST['filter_outlet'] ?? ''));
     $qKeep = trim((string) ($_POST['filter_q'] ?? ''));
+    $typeKeep = brisko_order_type_key((string) ($_POST['filter_type'] ?? ''));
     if ($stKeep !== '') {
         $back['status'] = $stKeep;
     }
@@ -46,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($qKeep !== '') {
         $back['q'] = $qKeep;
+    }
+    if (trim((string) ($_POST['filter_type'] ?? '')) !== '') {
+        $back['type'] = $typeKeep;
     }
     brisko_redirect('orders.php?' . http_build_query(array_filter($back)));
 }
@@ -57,12 +61,16 @@ uasort($orders, static fn ($a, $b) => ((int) ($b['createdAt'] ?? 0)) <=> ((int) 
 
 $filter = (string) ($_GET['status'] ?? '');
 $outletFilter = (string) ($_GET['outlet'] ?? '');
+$typeFilter = brisko_order_type_key((string) ($_GET['type'] ?? ''));
 $searchQuery = trim((string) ($_GET['q'] ?? ''));
 if ($filter !== '') {
     $orders = array_filter($orders, static fn ($o) => is_array($o) && ($o['orderStatus'] ?? '') === $filter);
 }
 if ($outletFilter !== '') {
     $orders = array_filter($orders, static fn ($o) => is_array($o) && ($o['outletId'] ?? '') === $outletFilter);
+}
+if (trim((string) ($_GET['type'] ?? '')) !== '') {
+    $orders = array_filter($orders, static fn ($o) => is_array($o) && brisko_order_type_key((string) ($o['orderType'] ?? '')) === $typeFilter);
 }
 if ($searchQuery !== '') {
     $needle = mb_strtolower($searchQuery);
@@ -85,6 +93,9 @@ if ($outletFilter !== '') {
 }
 if ($searchQuery !== '') {
     $queryKeep['q'] = $searchQuery;
+}
+if (trim((string) ($_GET['type'] ?? '')) !== '') {
+    $queryKeep['type'] = $typeFilter;
 }
 
 if (!function_exists('array_is_list')) {

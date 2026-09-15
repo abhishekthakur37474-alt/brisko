@@ -104,6 +104,25 @@ function brisko_status_label(string $status): string
     return ucwords(str_replace('_', ' ', $status));
 }
 
+function brisko_order_type_key(string $type): string
+{
+    $key = preg_replace('/[^a-z0-9]/', '', strtolower(trim($type))) ?? '';
+    return match ($key) {
+        'takeaway', 'takeout', 'pickup' => 'takeaway',
+        'dinein' => 'dineIn',
+        default => 'delivery',
+    };
+}
+
+function brisko_order_type_label(string $type): string
+{
+    return match (brisko_order_type_key($type)) {
+        'takeaway' => 'Takeaway',
+        'dineIn' => 'Dine-In',
+        default => 'Delivery',
+    };
+}
+
 function brisko_next_status(string $status): ?string
 {
     $flow = ['placed', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered'];

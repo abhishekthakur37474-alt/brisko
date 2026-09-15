@@ -8,6 +8,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/services/location_service.dart';
 import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/primary_button.dart';
+import '../auth/auth_controller.dart';
 import '../location/location_controller.dart';
 import 'address_controller.dart';
 import 'address_model.dart';
@@ -27,6 +28,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
   String? _error;
   DetectedLocation? _detected;
 
+  final _receiverName = TextEditingController();
   final _line1 = TextEditingController();
   final _line2 = TextEditingController();
   final _landmark = TextEditingController();
@@ -42,6 +44,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
   @override
   void initState() {
     super.initState();
+    _receiverName.text = ref.read(currentUserProvider).valueOrNull?.name ?? '';
     _web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppColors.white);
@@ -50,6 +53,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
 
   @override
   void dispose() {
+    _receiverName.dispose();
     _line1.dispose();
     _line2.dispose();
     _landmark.dispose();
@@ -133,11 +137,13 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
     final existing = ref.read(addressesProvider).valueOrNull ?? [];
     final makeDefault = existing.isEmpty;
     final fullAddress = _composeAddress();
+    final receiverName = _receiverName.text.trim();
 
     final savedId = await ref.read(addressControllerProvider).save(
           AddressModel(
             id: '',
             label: 'Home',
+            receiverName: receiverName,
             fullAddress: fullAddress,
             lat: _detected!.lat,
             lng: _detected!.lng,
@@ -151,6 +157,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
             AddressModel(
               id: savedId,
               label: 'Home',
+              receiverName: receiverName,
               fullAddress: fullAddress,
               lat: _detected!.lat,
               lng: _detected!.lng,
@@ -239,6 +246,13 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
       child: ListView(
         padding: EdgeInsets.fromLTRB(16, 8, 16, bottom + 16),
         children: [
+          TextFormField(
+            controller: _receiverName,
+            textCapitalization: TextCapitalization.words,
+            decoration: _dec('Receiver name', required: true),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Receiver name is required' : null,
+          ),
+          const SizedBox(height: 12),
           TextFormField(
             controller: _line1,
             textCapitalization: TextCapitalization.words,

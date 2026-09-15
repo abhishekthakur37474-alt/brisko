@@ -90,6 +90,7 @@ class SeedService {
         'minPointsToRedeem': 50,
         'maxPointsUsablePerOrder': 200,
         'pointsExpiryDays': 90,
+        'minOrderValueForPoints': 0,
       },
     };
 

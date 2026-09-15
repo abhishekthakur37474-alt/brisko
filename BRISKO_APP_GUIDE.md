@@ -253,6 +253,7 @@ Default config (Firebase `loyaltyConfig`):
 - Min redeem **50**
 - Max **200** points per order
 - Expiry **90 days** (config field)
+- Min order value to earn points **0** (orders below it earn nothing; `minOrderValueForPoints`)
 
 Screen: black balance card + earn/redeem history. Points credit on delivered orders.
 

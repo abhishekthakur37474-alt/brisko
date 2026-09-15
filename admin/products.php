@@ -140,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'images' => $images === [] ? new stdClass() : $images,
                 'basePrice' => (float) ($_POST['basePrice'] ?? 0),
                 'isVeg' => isset($_POST['isVeg']),
+                'noOnionGarlic' => isset($_POST['noOnionGarlic']),
                 'isBestSeller' => isset($_POST['isBestSeller']),
                 'isFeatured' => isset($_POST['isFeatured']),
                 'isActive' => isset($_POST['isActive']),
@@ -204,6 +205,7 @@ require __DIR__ . '/includes/header.php';
                 <td><?= brisko_h(brisko_money($p['basePrice'] ?? 0)) ?></td>
                 <td>
                     <?= !empty($p['isVeg']) || ($p['isVeg'] ?? true) ? 'Veg' : 'Non-veg' ?>
+                    <?= !empty($p['noOnionGarlic']) ? ' · No Onion/Garlic' : '' ?>
                     <?= !empty($p['isBestSeller']) ? ' · Best' : '' ?>
                     <?= !empty($p['isFeatured']) ? ' · Featured' : '' ?>
                     <?= (($p['isActive'] ?? true) ? '' : ' · Hidden') ?>
@@ -276,6 +278,7 @@ require __DIR__ . '/includes/header.php';
                         </div>
                         <div class="col-12">
                             <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="isVeg" id="veg" <?= ($edit['isVeg'] ?? true) ? 'checked' : '' ?>><label class="form-check-label" for="veg">Veg</label></div>
+                            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="noOnionGarlic" id="nog" <?= !empty($edit['noOnionGarlic']) ? 'checked' : '' ?>><label class="form-check-label" for="nog">No Onion/Garlic</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="isBestSeller" id="bs" <?= !empty($edit['isBestSeller']) ? 'checked' : '' ?>><label class="form-check-label" for="bs">Best seller</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="isFeatured" id="ft" <?= !empty($edit['isFeatured']) ? 'checked' : '' ?>><label class="form-check-label" for="ft">Featured</label></div>
                             <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="isActive" id="ia" <?= ($edit['isActive'] ?? true) ? 'checked' : '' ?>><label class="form-check-label" for="ia">Active</label></div>

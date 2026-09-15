@@ -4,6 +4,7 @@ class LoyaltyConfig {
   final int minPointsToRedeem;
   final int maxPointsUsablePerOrder;
   final int pointsExpiryDays;
+  final double minOrderValueForPoints;
 
   const LoyaltyConfig({
     this.pointsPerRupeeSpent = 0.05,
@@ -11,6 +12,7 @@ class LoyaltyConfig {
     this.minPointsToRedeem = 50,
     this.maxPointsUsablePerOrder = 200,
     this.pointsExpiryDays = 90,
+    this.minOrderValueForPoints = 0,
   });
 
   factory LoyaltyConfig.fromMap(Map<dynamic, dynamic> map) {
@@ -20,6 +22,7 @@ class LoyaltyConfig {
       minPointsToRedeem: (map['minPointsToRedeem'] as num?)?.toInt() ?? 50,
       maxPointsUsablePerOrder: (map['maxPointsUsablePerOrder'] as num?)?.toInt() ?? 200,
       pointsExpiryDays: (map['pointsExpiryDays'] as num?)?.toInt() ?? 90,
+      minOrderValueForPoints: (map['minOrderValueForPoints'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -29,6 +32,7 @@ class LoyaltyConfig {
         'minPointsToRedeem': minPointsToRedeem,
         'maxPointsUsablePerOrder': maxPointsUsablePerOrder,
         'pointsExpiryDays': pointsExpiryDays,
+        'minOrderValueForPoints': minOrderValueForPoints,
       };
 }
 

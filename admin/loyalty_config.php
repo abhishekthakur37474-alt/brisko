@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'minPointsToRedeem' => (int) ($_POST['minPointsToRedeem'] ?? 50),
             'maxPointsUsablePerOrder' => (int) ($_POST['maxPointsUsablePerOrder'] ?? 200),
             'pointsExpiryDays' => (int) ($_POST['pointsExpiryDays'] ?? 90),
+            'minOrderValueForPoints' => (float) ($_POST['minOrderValueForPoints'] ?? 0),
         ]);
         brisko_flash('success', 'Loyalty config saved.');
     } catch (Throwable $e) {
@@ -38,6 +39,11 @@ require __DIR__ . '/includes/header.php';
                 <div class="mb-3"><label class="form-label">Min points to redeem</label><input class="form-control" name="minPointsToRedeem" type="number" value="<?= (int) ($cfg['minPointsToRedeem'] ?? 50) ?>"></div>
                 <div class="mb-3"><label class="form-label">Max points per order</label><input class="form-control" name="maxPointsUsablePerOrder" type="number" value="<?= (int) ($cfg['maxPointsUsablePerOrder'] ?? 200) ?>"></div>
                 <div class="mb-3"><label class="form-label">Points expiry days</label><input class="form-control" name="pointsExpiryDays" type="number" value="<?= (int) ($cfg['pointsExpiryDays'] ?? 90) ?>"></div>
+                <div class="mb-3">
+                    <label class="form-label">Minimum order value to earn points</label>
+                    <input class="form-control" name="minOrderValueForPoints" type="number" step="0.01" min="0" value="<?= brisko_h((string) ($cfg['minOrderValueForPoints'] ?? 0)) ?>">
+                    <div class="form-text">Orders below this value earn no loyalty points. Set 0 to always earn.</div>
+                </div>
                 <button class="btn btn-primary" type="submit">Save</button>
             </form>
         </div>

@@ -13,7 +13,12 @@ function brisko_credit_loyalty(RtdbClient $rtdb, string $orderId, array $order):
     }
     $config = $rtdb->get('loyaltyConfig');
     $rate = is_array($config) ? (float) ($config['pointsPerRupeeSpent'] ?? 0.05) : 0.05;
+    $minOrderValue = is_array($config) ? (float) ($config['minOrderValueForPoints'] ?? 0) : 0;
     $amount = (float) ($order['finalAmount'] ?? 0);
+    if ($amount < $minOrderValue) {
+        $rtdb->patch('orders/' . $orderId, ['loyaltyCredited' => true]);
+        return;
+    }
     $earned = (int) floor($amount * $rate);
     if ($earned <= 0) {
         $rtdb->patch('orders/' . $orderId, ['loyaltyCredited' => true]);

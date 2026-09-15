@@ -28,13 +28,23 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String _method = 'cod';
   final _notes = TextEditingController();
+  final _receiverName = TextEditingController();
   bool _loading = false;
   bool _notesOpen = false;
   bool _addressesOpen = false;
+  bool _receiverEdited = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final savedName = ref.read(locationControllerProvider).address?.receiverName ?? '';
+    _receiverName.text = savedName.isNotEmpty ? savedName : (ref.read(currentUserProvider).valueOrNull?.name ?? '');
+  }
 
   @override
   void dispose() {
     _notes.dispose();
+    _receiverName.dispose();
     super.dispose();
   }
 
@@ -48,6 +58,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final loyalty = ref.watch(loyaltyConfigProvider).valueOrNull;
     final redeem = ref.watch(redeemLoyaltyProvider);
     final addresses = ref.watch(addressesProvider).valueOrNull ?? [];
+
+    ref.listen(locationControllerProvider, (previous, next) {
+      final name = next.address?.receiverName ?? '';
+      if (!_receiverEdited && name.isNotEmpty) _receiverName.text = name;
+    });
 
     final minPoints = loyalty?.minPointsToRedeem ?? 50;
     final canRedeem = (user?.loyaltyPoints ?? 0) >= minPoints;
@@ -70,6 +85,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               children: [
                 const StoreClosedBanner(margin: EdgeInsets.only(bottom: 12)),
                 isPickup ? _pickupInfo(loc) : _deliveryAddress(loc, addresses),
+                const SizedBox(height: 24),
+                const _SectionTitle('Receiver name'),
+                const SizedBox(height: 10),
+                _SoftCard(
+                  child: TextField(
+                    controller: _receiverName,
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) => _receiverEdited = true,
+                    decoration: const InputDecoration(
+                      hintText: 'Who is receiving this order?',
+                      filled: true,
+                      fillColor: AppColors.warmBg,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 const _SectionTitle('Loyalty points'),
                 const SizedBox(height: 10),
@@ -141,12 +171,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Online payment coming soon. Choose Cash on Delivery.')));
                       return;
                     }
+                    final receiver = _receiverName.text.trim();
+                    if (receiver.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receiver name is required')));
+                      return;
+                    }
                     setState(() => _loading = true);
                     try {
                       final fallbackAddress = loc.address ??
                           AddressModel(
                             id: 'pickup_${loc.outlet!.id}',
                             label: isPickup ? 'Pickup' : 'Delivery',
+                            receiverName: receiver,
                             fullAddress: loc.outlet!.address,
                             lat: loc.outlet!.lat,
                             lng: loc.outlet!.lng,
@@ -162,6 +198,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             notes: _notes.text,
                             couponCode: coupon?.code,
                             orderMode: loc.orderMode,
+                            receiverName: receiver,
                           );
                       if (context.mounted) context.go('/order-confirm/$id');
                     } catch (e) {

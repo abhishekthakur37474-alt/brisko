@@ -1,6 +1,7 @@
 class AddressModel {
   final String id;
   final String label;
+  final String receiverName;
   final String fullAddress;
   final double lat;
   final double lng;
@@ -10,6 +11,7 @@ class AddressModel {
   const AddressModel({
     required this.id,
     required this.label,
+    this.receiverName = '',
     required this.fullAddress,
     required this.lat,
     required this.lng,
@@ -21,6 +23,7 @@ class AddressModel {
     return AddressModel(
       id: id,
       label: (map['label'] ?? 'Home') as String,
+      receiverName: (map['receiverName'] ?? '') as String,
       fullAddress: (map['fullAddress'] ?? '') as String,
       lat: (map['lat'] as num?)?.toDouble() ?? 0,
       lng: (map['lng'] as num?)?.toDouble() ?? 0,
@@ -31,6 +34,7 @@ class AddressModel {
 
   Map<String, dynamic> toMap() => {
         'label': label,
+        'receiverName': receiverName,
         'fullAddress': fullAddress,
         'lat': lat,
         'lng': lng,
@@ -38,10 +42,17 @@ class AddressModel {
         'isDefault': isDefault,
       };
 
-  AddressModel copyWith({String? outletId, bool? isDefault, String? label, String? fullAddress}) {
+  AddressModel copyWith({
+    String? outletId,
+    bool? isDefault,
+    String? label,
+    String? receiverName,
+    String? fullAddress,
+  }) {
     return AddressModel(
       id: id,
       label: label ?? this.label,
+      receiverName: receiverName ?? this.receiverName,
       fullAddress: fullAddress ?? this.fullAddress,
       lat: lat,
       lng: lng,

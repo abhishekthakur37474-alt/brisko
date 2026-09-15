@@ -14,6 +14,7 @@ import '../../core/widgets/pizza_loader.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/status_chip.dart';
 import '../cart/cart_controller.dart';
+import '../location/location_controller.dart';
 import '../orders/order_model.dart';
 import '../orders/orders_controller.dart';
 import '../reviews/review_sheet.dart';
@@ -30,6 +31,19 @@ class OrderTrackingScreen extends ConsumerWidget {
     ('out_for_delivery', 'On the way', Icons.delivery_dining_outlined),
     ('delivered', 'Delivered', Icons.home_outlined),
   ];
+
+  static List<(String, String, IconData)> _stepsFor(OrderMode mode) {
+    if (mode == OrderMode.delivery) return _steps;
+    final dineIn = mode == OrderMode.dineIn;
+    return [
+      ('placed', 'Placed', Icons.receipt_long_outlined),
+      ('confirmed', 'Confirmed', Icons.check_circle_outline),
+      ('preparing', 'Preparing', Icons.local_fire_department_outlined),
+      ('ready', 'Ready', Icons.restaurant_outlined),
+      ('out_for_delivery', dineIn ? 'Served' : 'Picked up', Icons.done_all),
+      ('delivered', dineIn ? 'Completed' : 'Collected', Icons.home_outlined),
+    ];
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,8 +63,13 @@ class OrderTrackingScreen extends ConsumerWidget {
         data: (order) {
           if (order == null) return const Center(child: Text('Order not found'));
           final raw = order.orderStatus;
-          final current = _steps.indexWhere((s) => s.$1 == raw);
+          final steps = _stepsFor(order.orderType);
+          final current = steps.indexWhere((s) => s.$1 == raw);
           final safeIndex = current == -1 ? 0 : current;
+          final isDelivery = order.orderType == OrderMode.delivery;
+          final addressHeading = isDelivery
+              ? 'Delivering to'
+              : (order.orderType == OrderMode.dineIn ? 'Dine-In at' : 'Pickup from');
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -96,12 +115,23 @@ class OrderTrackingScreen extends ConsumerWidget {
                           ),
                         ],
                       )
-                    : _StatusStepper(steps: _steps, current: safeIndex),
+                    : _StatusStepper(steps: steps, current: safeIndex),
               ),
               const SizedBox(height: 24),
-              Text('Delivering to', style: Theme.of(context).textTheme.titleMedium),
+              Text(addressHeading, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              AppCard(child: Text(order.address.fullAddress)),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (order.receiverName.isNotEmpty) ...[
+                      Text('Receiver: ${order.receiverName}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                    ],
+                    Text(order.address.fullAddress),
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
               _ItemsSummary(order: order),
               const SizedBox(height: 16),

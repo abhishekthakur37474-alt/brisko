@@ -173,7 +173,8 @@ brisko-db (root)
 ├── supportTickets/{ticketId}: { userId, type, message, status, createdAt }
 │
 └── loyaltyConfig: { pointsPerRupeeSpent, redemptionValuePerPoint,
-                      minPointsToRedeem, maxPointsUsablePerOrder, pointsExpiryDays }
+                      minPointsToRedeem, maxPointsUsablePerOrder, pointsExpiryDays,
+                      minOrderValueForPoints }
 ```
 
 **Why index nodes (`userOrders`, `outletOrders`):** RTDB can't do a SQL-style `WHERE userId = X`. So the app writes `true` under `/userOrders/{uid}/{orderId}` and `/outletOrders/{outletId}/{orderId}` at the same moment it creates an order — using an RTDB **multi-path update** so all three writes (the order itself + both index entries) succeed or fail together as one atomic operation.

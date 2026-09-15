@@ -72,6 +72,8 @@ class AddressesScreen extends ConsumerWidget {
                                 ],
                               ],
                             ),
+                            if (a.receiverName.isNotEmpty)
+                              Text('Receiver: ${a.receiverName}', style: const TextStyle(color: AppColors.muted)),
                             Text(a.fullAddress, style: const TextStyle(color: AppColors.muted)),
                           ],
                         ),
@@ -101,41 +103,55 @@ class AddressesScreen extends ConsumerWidget {
 
   Future<void> _edit(BuildContext context, WidgetRef ref, AddressModel? existing) async {
     final label = TextEditingController(text: existing?.label ?? 'Home');
+    final receiver = TextEditingController(text: existing?.receiverName ?? '');
     final address = TextEditingController(text: existing?.fullAddress ?? '');
+    final formKey = GlobalKey<FormState>();
     await showGlassSheet(
       context: context,
       builder: (c) {
         return Padding(
           padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(c).viewInsets.bottom + 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4))),
-              const SizedBox(height: 16),
-              Text('Edit address', style: Theme.of(c).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              TextField(controller: label, decoration: const InputDecoration(labelText: 'Label')),
-              const SizedBox(height: 8),
-              TextField(controller: address, decoration: const InputDecoration(labelText: 'Full address')),
-              const SizedBox(height: 12),
-              PrimaryButton(
-                label: 'Save',
-                onPressed: () async {
-                  final outlets = ref.read(outletsProvider).valueOrNull ?? [];
-                  final outlet = ref.read(locationControllerProvider.notifier).matchOutlet(existing!.lat, existing.lng, outlets);
-                  await ref.read(addressControllerProvider).save(AddressModel(
-                        id: existing.id,
-                        label: label.text,
-                        fullAddress: address.text,
-                        lat: existing.lat,
-                        lng: existing.lng,
-                        outletId: outlet?.id,
-                        isDefault: existing.isDefault,
-                      ));
-                  if (c.mounted) Navigator.pop(c);
-                },
-              ),
-            ],
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 16),
+                Text('Edit address', style: Theme.of(c).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                TextField(controller: label, decoration: const InputDecoration(labelText: 'Label')),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: receiver,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Receiver name *'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Receiver name is required' : null,
+                ),
+                const SizedBox(height: 8),
+                TextField(controller: address, decoration: const InputDecoration(labelText: 'Full address')),
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  label: 'Save',
+                  onPressed: () async {
+                    if (!(formKey.currentState?.validate() ?? false)) return;
+                    final outlets = ref.read(outletsProvider).valueOrNull ?? [];
+                    final outlet = ref.read(locationControllerProvider.notifier).matchOutlet(existing!.lat, existing.lng, outlets);
+                    await ref.read(addressControllerProvider).save(AddressModel(
+                          id: existing.id,
+                          label: label.text,
+                          receiverName: receiver.text.trim(),
+                          fullAddress: address.text,
+                          lat: existing.lat,
+                          lng: existing.lng,
+                          outletId: outlet?.id,
+                          isDefault: existing.isDefault,
+                        ));
+                    if (c.mounted) Navigator.pop(c);
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },

@@ -34,6 +34,8 @@ class OrderModel {
   final int createdAt;
   final int updatedAt;
   final String? invoiceUrl;
+  // Name of the person receiving/collecting the order.
+  final String receiverName;
   // How the customer gets the order: delivery / takeaway / dineIn.
   final OrderMode orderType;
 
@@ -59,6 +61,7 @@ class OrderModel {
     required this.createdAt,
     required this.updatedAt,
     this.invoiceUrl,
+    this.receiverName = '',
     this.orderType = OrderMode.delivery,
   });
 
@@ -112,6 +115,9 @@ class OrderModel {
       createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
       updatedAt: (map['updatedAt'] as num?)?.toInt() ?? 0,
       invoiceUrl: map['invoiceUrl'] as String?,
+      receiverName: (map['receiverName'] as String?)?.trim().isNotEmpty == true
+          ? map['receiverName'] as String
+          : addr.receiverName,
       orderType: _parseOrderType(map['orderType']),
     );
   }
@@ -144,6 +150,7 @@ class OrderModel {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'invoiceUrl': invoiceUrl,
+      'receiverName': receiverName,
       'orderType': orderType.name,
     };
   }

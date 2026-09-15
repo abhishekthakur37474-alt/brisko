@@ -53,11 +53,14 @@ class OrdersController {
     required String notes,
     String? couponCode,
     OrderMode orderMode = OrderMode.delivery,
+    String receiverName = '',
   }) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
     if (uid == null) throw Exception('Login required');
     if (items.isEmpty) throw Exception('Cart is empty');
     if (price.finalAmount <= 0) throw Exception('Invalid amount');
+    final receiver = receiverName.trim().isNotEmpty ? receiverName.trim() : address.receiverName.trim();
+    if (receiver.isEmpty) throw Exception('Receiver name is required');
 
     final store = ref.read(storeStatusProvider);
     if (store.isClosed) {
@@ -83,7 +86,7 @@ class OrdersController {
       userId: uid,
       outletId: outletId,
       items: items,
-      address: address,
+      address: address.copyWith(receiverName: receiver),
       subtotal: price.subtotal,
       gstAmount: price.gstAmount,
       deliveryCharge: price.deliveryCharge,
@@ -99,6 +102,7 @@ class OrdersController {
       orderNotes: notes,
       createdAt: now,
       updatedAt: now,
+      receiverName: receiver,
       orderType: orderMode,
     );
 
