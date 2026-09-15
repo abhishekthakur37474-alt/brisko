@@ -9,6 +9,7 @@ Server-rendered admin panel for the Brisko Pizza Flutter app. It reads and write
 3. Open `register.php` once to create the first admin. After that, registration is closed.
 4. Sign in at `login.php`.
 5. Password reset is `reset_credentials.php` (direct URL only, not linked anywhere).
+6. To let a legacy gateway call `api/payment_webhook.php`, set `BRISKO_PAYMENT_WEBHOOK_SECRET` and send it as the `X-Webhook-Secret` header. Without it the endpoint rejects every request. Cashfree uses the signed `backend/api/cashfree/webhook.php` instead.
 
 ## Local preview
 

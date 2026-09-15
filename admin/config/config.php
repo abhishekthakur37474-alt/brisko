@@ -10,7 +10,7 @@ return [
     'session_name' => 'brisko_admin',
     'login_max_attempts' => 8,
     'login_lock_seconds' => 900,
-    'invoice_dir' => dirname(__DIR__) . '/invoices',
-    'invoice_base_url' => getenv('BRISKO_INVOICE_BASE_URL') ?: 'https://blackxmarket.shop/abhishek/brisko',
+    'invoice_dir' => rtrim(getenv('BRISKO_INVOICE_DIR') ?: dirname(__DIR__, 2) . '/invoices', '/'),
+    'invoice_base_url' => rtrim(getenv('BRISKO_INVOICE_BASE_URL') ?: 'https://briskopizza.com', '/'),
     'attempts_dir' => dirname(__DIR__) . '/storage/attempts',
 ];

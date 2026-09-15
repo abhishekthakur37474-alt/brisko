@@ -232,16 +232,19 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                           : () async {
                         setState(() => _adding = true);
                         try {
-                          final toppings = {for (final t in product.toppings.where((t) => _toppings.contains(t.id))) t.name: t.price};
-                          final addons = {for (final t in product.addons.where((t) => _addons.contains(t.id))) t.name: t.price};
+                          // NOTE: store the backend option *id*, not the display
+                          // name, since the PHP backend looks these values up
+                          // directly as keys in product.customizations.{group}.
+                          final toppings = {for (final t in product.toppings.where((t) => _toppings.contains(t.id))) t.id: t.price};
+                          final addons = {for (final t in product.addons.where((t) => _addons.contains(t.id))) t.id: t.price};
                           await ref.read(cartControllerProvider).addCustomized(
                                 productId: product.id,
                                 name: product.name,
                                 image: product.image,
                                 isVeg: product.isVeg,
                                 unitPrice: unit,
-                                selectedSize: product.sizes.where((s) => s.id == _size).firstOrNull?.name ?? '',
-                                selectedCrust: product.crusts.where((s) => s.id == _crust).firstOrNull?.name ?? '',
+                                selectedSize: product.sizes.where((s) => s.id == _size).firstOrNull?.id ?? '',
+                                selectedCrust: product.crusts.where((s) => s.id == _crust).firstOrNull?.id ?? '',
                                 toppings: toppings,
                                 addons: addons,
                                 quantity: _qty,

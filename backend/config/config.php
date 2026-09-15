@@ -28,7 +28,7 @@ if (is_file(__DIR__ . '/.env')) {
             continue;
         }
         [$k, $v] = explode('=', $line, 2);
-        $k = trim($k);
+        $k = trim($k);  
         $v = trim($v, " \t\"'");
         if ($k !== '' && getenv($k) === false) {
             putenv($k . '=' . $v);

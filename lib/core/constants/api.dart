@@ -11,7 +11,7 @@ class ApiConfig {
   ///   flutter run --dart-define=API_BASE_URL=https://api.brisko.example
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://blackxmarket.shop/brisko-api',
+    defaultValue: 'https://briskopizza.com/backend',
   );
 
   /// Cashfree environment used by the Flutter SDK to build the payment session.
