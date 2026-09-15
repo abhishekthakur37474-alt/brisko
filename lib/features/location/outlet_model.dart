@@ -43,6 +43,15 @@ class OutletModel {
     );
   }
 
+  String get mapsLink {
+    final url = googleMapsUrl.trim();
+    if (url.isNotEmpty) return url;
+    if (lat != 0 || lng != 0) {
+      return 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+    }
+    return '';
+  }
+
   bool isOpenAt(DateTime now) => StoreHours.isOpenAt(now, openTime, closeTime);
 
   DateTime nextOpeningAt(DateTime now) => StoreHours.nextOpeningAt(now, openTime, closeTime);

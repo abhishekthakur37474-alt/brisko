@@ -102,6 +102,8 @@ class LocationController extends StateNotifier<LocationState> {
         label: prefs.getString('loc_label') ?? 'Saved',
         savedOutletId: prefs.getString('loc_outlet'),
         savedOutletName: prefs.getString('loc_outlet_name'),
+        savedWithinRadius: prefs.getBool('loc_within'),
+        savedOrderMode: prefs.getString('loc_mode'),
       ).timeout(const Duration(seconds: 10));
     } catch (_) {
       if (mounted) state = state.copyWith(restoring: false, loading: false);
@@ -112,16 +114,34 @@ class LocationController extends StateNotifier<LocationState> {
     }
   }
 
-  Future<void> _persist(AddressModel address, OutletModel? outlet) async {
+  Future<void> _persist(
+    AddressModel address,
+    OutletModel? outlet,
+    bool withinRadius,
+    OrderMode orderMode,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('loc_lat', address.lat);
     await prefs.setDouble('loc_lng', address.lng);
     await prefs.setString('loc_address', address.fullAddress);
     await prefs.setString('loc_label', address.label);
+    await prefs.setBool('loc_within', withinRadius);
+    await prefs.setString('loc_mode', orderMode.name);
     if (outlet != null) {
       await prefs.setString('loc_outlet', outlet.id);
       await prefs.setString('loc_outlet_name', outlet.name);
+    } else {
+      await prefs.remove('loc_outlet');
+      await prefs.remove('loc_outlet_name');
     }
+  }
+
+  OrderMode? _parseOrderMode(String? raw) {
+    if (raw == null) return null;
+    for (final mode in OrderMode.values) {
+      if (mode.name == raw) return mode;
+    }
+    return null;
   }
 
   /// Outlet whose serviceRadiusKm covers (lat, lng). Used for delivery.
@@ -159,6 +179,10 @@ class LocationController extends StateNotifier<LocationState> {
     if (!mounted || state.outlet == null) return;
     if (mode == OrderMode.delivery && !state.deliveryAvailable) return;
     state = state.copyWith(orderMode: mode);
+    final address = state.address;
+    if (address != null) {
+      _persist(address, state.outlet, state.deliveryAvailable, mode);
+    }
   }
 
   Future<void> detect() async {
@@ -220,6 +244,8 @@ class LocationController extends StateNotifier<LocationState> {
     String? id,
     String? savedOutletId,
     String? savedOutletName,
+    bool? savedWithinRadius,
+    String? savedOrderMode,
   }) async {
     List<OutletModel> outlets = const [];
     try {
@@ -230,21 +256,29 @@ class LocationController extends StateNotifier<LocationState> {
     var withinRadius = outlet != null;
 
     if (outlet == null && savedOutletId != null && savedOutletId.isNotEmpty) {
-      outlet = outlets.where((o) => o.id == savedOutletId).firstOrNull ??
-          OutletModel(
-            id: savedOutletId,
-            name: savedOutletName ?? 'Outlet',
-            address: fullAddress,
-            lat: lat,
-            lng: lng,
-            serviceRadiusKm: 25,
-            isActive: true,
-            contactNumber: '',
-            openTime: '11:00',
-            closeTime: '23:30',
-          );
-      // Previously-saved outlet for this address; treat as a covered spot.
-      withinRadius = outlet != null;
+      final known = outlets.where((o) => o.id == savedOutletId).firstOrNull;
+      if (known != null) {
+        // The outlet still exists but no longer covers this point, so the
+        // previously-saved coverage must not be trusted.
+        outlet = known;
+        withinRadius = false;
+      } else {
+        outlet = OutletModel(
+          id: savedOutletId,
+          name: savedOutletName ?? 'Outlet',
+          address: fullAddress,
+          lat: lat,
+          lng: lng,
+          serviceRadiusKm: 25,
+          isActive: true,
+          contactNumber: '',
+          openTime: '11:00',
+          closeTime: '23:30',
+        );
+        // Outlet list is unavailable right now, so fall back to the coverage
+        // we recorded when this address was last saved.
+        withinRadius = savedWithinRadius ?? true;
+      }
     }
 
     // Step 2: nothing within radius — resolve nearest outlet anyway (ignoring
@@ -264,8 +298,14 @@ class LocationController extends StateNotifier<LocationState> {
       isDefault: true,
     );
 
+    final savedMode = _parseOrderMode(savedOrderMode);
+    final resolvedMode = withinRadius
+        ? (savedMode ?? OrderMode.delivery)
+        : (savedMode == OrderMode.dineIn ? OrderMode.dineIn : OrderMode.takeaway);
+
     if (outlet == null) {
       // No outlets configured at all — genuinely nothing we can offer.
+      await _persist(address, null, false, OrderMode.takeaway);
       state = LocationState(
         address: address,
         loading: false,
@@ -277,14 +317,14 @@ class LocationController extends StateNotifier<LocationState> {
       return;
     }
 
-    if (withinRadius) await _persist(address, outlet);
+    await _persist(address, outlet, withinRadius, resolvedMode);
     state = LocationState(
       address: address,
       outlet: outlet,
       loading: false,
       restoring: false,
       noCoverage: !withinRadius,
-      orderMode: withinRadius ? OrderMode.delivery : OrderMode.takeaway,
+      orderMode: resolvedMode,
       status: withinRadius ? LocationUiStatus.detected : LocationUiStatus.noCoverage,
     );
   }
@@ -296,13 +336,14 @@ class LocationController extends StateNotifier<LocationState> {
             matchOutlet(address.lat, address.lng, outlets);
     final withinRadius = outlet != null;
     outlet ??= nearestOutlet(address.lat, address.lng, outlets);
-    if (withinRadius) _persist(address, outlet);
+    final mode = withinRadius ? OrderMode.delivery : OrderMode.takeaway;
+    _persist(address, outlet, withinRadius, mode);
     state = LocationState(
       address: address,
       outlet: outlet,
       restoring: false,
       noCoverage: !withinRadius,
-      orderMode: withinRadius ? OrderMode.delivery : OrderMode.takeaway,
+      orderMode: mode,
       status: outlet == null
           ? LocationUiStatus.noCoverage
           : (withinRadius ? LocationUiStatus.detected : LocationUiStatus.noCoverage),

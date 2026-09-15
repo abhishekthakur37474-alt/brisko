@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
@@ -17,6 +18,7 @@ import '../../core/widgets/glass_sheet.dart';
 import '../addresses/address_controller.dart';
 import '../addresses/address_model.dart';
 import '../location/location_controller.dart';
+import '../location/outlet_model.dart';
 import '../location/store_closed_banner.dart';
 import '../menu/catalog_providers.dart';
 import '../menu/category_icon.dart';
@@ -60,15 +62,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Future<void> _openOutletLocation(OutletModel outlet) async {
+    final link = outlet.mapsLink;
+    if (link.isEmpty) return;
+    await launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = ref.watch(locationControllerProvider);
     final productsAsync = ref.watch(productsProvider);
     final catsAsync = ref.watch(categoriesProvider);
     final coupons = ref.watch(couponsProvider).valueOrNull ?? [];
-    final place = _placeName(loc.address);
-    final placeLine = _placeLine(loc.address);
     final pickupOnly = loc.noCoverage || loc.orderMode != OrderMode.delivery;
+    final outlet = loc.outlet;
+    final place = pickupOnly ? (outlet?.name ?? 'Outlet') : _placeName(loc.address);
+    final placeLine = pickupOnly ? (outlet?.address ?? '') : _placeLine(loc.address);
+    final prefix = pickupOnly
+        ? (loc.orderMode == OrderMode.dineIn ? 'Dine-In at' : 'Pickup from')
+        : 'Delivery at';
 
     final topInset = MediaQuery.paddingOf(context).top;
 
@@ -92,8 +104,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 topInset: topInset,
                 place: place,
                 placeLine: placeLine,
-                prefix: pickupOnly ? 'Pickup from' : 'Delivery at',
-                onLocation: _openAddressPicker,
+                prefix: prefix,
+                onLocation: pickupOnly && outlet != null
+                    ? () => _openOutletLocation(outlet)
+                    : _openAddressPicker,
                 onSearch: () => context.push('/search'),
               ),
             ),

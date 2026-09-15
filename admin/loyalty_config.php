@@ -40,9 +40,9 @@ require __DIR__ . '/includes/header.php';
                 <div class="mb-3"><label class="form-label">Max points per order</label><input class="form-control" name="maxPointsUsablePerOrder" type="number" value="<?= (int) ($cfg['maxPointsUsablePerOrder'] ?? 200) ?>"></div>
                 <div class="mb-3"><label class="form-label">Points expiry days</label><input class="form-control" name="pointsExpiryDays" type="number" value="<?= (int) ($cfg['pointsExpiryDays'] ?? 90) ?>"></div>
                 <div class="mb-3">
-                    <label class="form-label">Minimum order value to earn points</label>
+                    <label class="form-label">Minimum order subtotal to earn points</label>
                     <input class="form-control" name="minOrderValueForPoints" type="number" step="0.01" min="0" value="<?= brisko_h((string) ($cfg['minOrderValueForPoints'] ?? 0)) ?>">
-                    <div class="form-text">Orders below this value earn no loyalty points. Set 0 to always earn.</div>
+                    <div class="form-text">Orders whose subtotal (items only, before GST/delivery/discounts) is below this value earn no loyalty points. Points are also calculated on the subtotal. Set 0 to always earn.</div>
                 </div>
                 <button class="btn btn-primary" type="submit">Save</button>
             </form>

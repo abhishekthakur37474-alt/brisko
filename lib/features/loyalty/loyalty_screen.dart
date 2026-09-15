@@ -26,7 +26,7 @@ class LoyaltyScreen extends ConsumerWidget {
     final earnRule = config == null
         ? ''
         : minOrder > 0
-            ? 'Earn ${config.pointsPerRupeeSpent} pts per rupee on orders of Rs $minOrder or more. Min redeem ${config.minPointsToRedeem}.'
+            ? 'Earn ${config.pointsPerRupeeSpent} pts per rupee when your subtotal is Rs $minOrder or more. Min redeem ${config.minPointsToRedeem}.'
             : 'Earn ${config.pointsPerRupeeSpent} pts per rupee. Min redeem ${config.minPointsToRedeem}.';
     return Scaffold(
       backgroundColor: AppColors.white,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
@@ -213,22 +214,35 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     }
                     setState(() => _loading = true);
                     try {
-                      final fallbackAddress = loc.address ??
-                          AddressModel(
-                            id: 'pickup_${loc.outlet!.id}',
-                            label: isPickup ? 'Pickup' : 'Delivery',
-                            receiverName: receiver,
-                            receiverPhone: receiverPhone,
-                            fullAddress: loc.outlet!.address,
-                            lat: loc.outlet!.lat,
-                            lng: loc.outlet!.lng,
-                            outletId: loc.outlet!.id,
-                            isDefault: true,
-                          );
+                      final outlet = loc.outlet!;
+                      final AddressModel deliveryOrOutletAddress = isPickup
+                          ? AddressModel(
+                              id: 'pickup_${outlet.id}',
+                              label: loc.orderMode == OrderMode.dineIn ? 'Dine-In' : 'Pickup',
+                              receiverName: receiver,
+                              receiverPhone: receiverPhone,
+                              fullAddress: outlet.address,
+                              lat: outlet.lat,
+                              lng: outlet.lng,
+                              outletId: outlet.id,
+                              isDefault: true,
+                            )
+                          : (loc.address ??
+                              AddressModel(
+                                id: 'delivery_${outlet.id}',
+                                label: 'Delivery',
+                                receiverName: receiver,
+                                receiverPhone: receiverPhone,
+                                fullAddress: outlet.address,
+                                lat: outlet.lat,
+                                lng: outlet.lng,
+                                outletId: outlet.id,
+                                isDefault: true,
+                              ));
                       final id = await ref.read(ordersControllerProvider).placeOrder(
                             items: items,
-                            address: fallbackAddress,
-                            outletId: loc.outlet!.id,
+                            address: deliveryOrOutletAddress,
+                            outletId: outlet.id,
                             price: price,
                             paymentMethod: _method,
                             notes: _notes.text,
@@ -328,6 +342,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ],
           ),
         ),
+        if (outlet != null && outlet.mapsLink.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => launchUrl(
+                Uri.parse(outlet.mapsLink),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.map_outlined, size: 18),
+              label: const Text('Open outlet location'),
+            ),
+          ),
+        ],
       ],
     );
   }
