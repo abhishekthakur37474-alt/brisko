@@ -7,6 +7,70 @@ require_once __DIR__ . '/includes/require_admin.php';
 $pageTitle = 'Outlets';
 $rtdb = brisko_rtdb();
 
+function brisko_time_parts(string $value, int $fallbackHour = 12, int $fallbackMinute = 0): array
+{
+    $raw = strtoupper(trim($value));
+    $period = str_contains($raw, 'PM') ? 'PM' : (str_contains($raw, 'AM') ? 'AM' : null);
+    $cleaned = preg_replace('/[^0-9:]/', '', $raw) ?? '';
+    $segments = array_values(array_filter(explode(':', $cleaned), static fn (string $p): bool => $p !== ''));
+    $hour = isset($segments[0]) ? (int) $segments[0] : $fallbackHour;
+    $minute = isset($segments[1]) ? (int) $segments[1] : $fallbackMinute;
+    if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
+        $hour = $fallbackHour;
+        $minute = $fallbackMinute;
+    }
+    $period ??= $hour >= 12 ? 'PM' : 'AM';
+    $hour %= 12;
+    if ($hour === 0) {
+        $hour = 12;
+    }
+    return ['hour' => $hour, 'minute' => $minute, 'period' => $period];
+}
+
+function brisko_format_time_12h(string $value): string
+{
+    $value = trim($value);
+    if (preg_replace('/[^0-9]/', '', $value) === '') {
+        return $value;
+    }
+    $parts = brisko_time_parts($value);
+    return sprintf('%d:%02d %s', $parts['hour'], $parts['minute'], $parts['period']);
+}
+
+function brisko_time_from_request(string $prefix, string $fallback): string
+{
+    $hour = (int) ($_POST[$prefix . 'Hour'] ?? 0);
+    $minute = (int) ($_POST[$prefix . 'Minute'] ?? 0);
+    $period = strtoupper((string) ($_POST[$prefix . 'Period'] ?? ''));
+    if ($hour >= 1 && $hour <= 12 && $minute >= 0 && $minute <= 59 && in_array($period, ['AM', 'PM'], true)) {
+        return sprintf('%d:%02d %s', $hour, $minute, $period);
+    }
+    $single = trim((string) ($_POST[$prefix . 'Time'] ?? ''));
+    return $single !== '' ? $single : $fallback;
+}
+
+function brisko_time_select(string $name, array $parts): string
+{
+    $html = '<div class="row g-2" data-time-preview="' . brisko_h($name . 'Preview') . '">';
+    $html .= '<div class="col-4"><select class="form-select" name="' . brisko_h($name . 'Hour') . '" data-role="hour" aria-label="Hour">';
+    for ($hour = 1; $hour <= 12; $hour++) {
+        $html .= '<option value="' . $hour . '"' . ((int) $parts['hour'] === $hour ? ' selected' : '') . '>' . $hour . '</option>';
+    }
+    $html .= '</select></div>';
+    $html .= '<div class="col-4"><select class="form-select" name="' . brisko_h($name . 'Minute') . '" data-role="minute" aria-label="Minute">';
+    for ($minute = 0; $minute <= 59; $minute++) {
+        $html .= '<option value="' . $minute . '"' . ((int) $parts['minute'] === $minute ? ' selected' : '') . '>' . str_pad((string) $minute, 2, '0', STR_PAD_LEFT) . '</option>';
+    }
+    $html .= '</select></div>';
+    $html .= '<div class="col-4"><select class="form-select" name="' . brisko_h($name . 'Period') . '" data-role="period" aria-label="AM or PM">';
+    foreach (['AM', 'PM'] as $period) {
+        $html .= '<option value="' . $period . '"' . ((string) $parts['period'] === $period ? ' selected' : '') . '>' . $period . '</option>';
+    }
+    $html .= '</select></div>';
+    $html .= '</div>';
+    return $html;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     brisko_csrf_check();
     $action = (string) ($_POST['action'] ?? 'save');
@@ -34,8 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'serviceRadiusKm' => (float) ($_POST['serviceRadiusKm'] ?? 5),
                 'isActive' => isset($_POST['isActive']),
                 'contactNumber' => trim((string) ($_POST['contactNumber'] ?? '')),
-                'openTime' => trim((string) ($_POST['openTime'] ?? '11:00')),
-                'closeTime' => trim((string) ($_POST['closeTime'] ?? '23:00')),
+                'openTime' => brisko_time_from_request('open', '11:00 AM'),
+                'closeTime' => brisko_time_from_request('close', '11:00 PM'),
             ]);
             brisko_flash('success', 'Outlet saved.');
         }
@@ -49,6 +113,8 @@ $outlets = brisko_map($rtdb->get('outlets'));
 $editId = (string) ($_GET['edit'] ?? '');
 $edit = $editId !== '' && isset($outlets[$editId]) ? $outlets[$editId] : null;
 $openFormModal = $edit !== null || isset($_GET['add']);
+$openParts = brisko_time_parts((string) ($edit['openTime'] ?? ''), 11, 0);
+$closeParts = brisko_time_parts((string) ($edit['closeTime'] ?? ''), 23, 0);
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -76,7 +142,7 @@ require __DIR__ . '/includes/header.php';
                     <div class="text-muted small"><?= brisko_h((string) ($o['address'] ?? '')) ?></div>
                 </td>
                 <td><?= brisko_h((string) ($o['serviceRadiusKm'] ?? '')) ?> km</td>
-                <td><?= brisko_h((string) ($o['openTime'] ?? '')) ?> – <?= brisko_h((string) ($o['closeTime'] ?? '')) ?></td>
+                <td><?= brisko_h(brisko_format_time_12h((string) ($o['openTime'] ?? ''))) ?> – <?= brisko_h(brisko_format_time_12h((string) ($o['closeTime'] ?? ''))) ?></td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-dark" href="outlets.php?edit=<?= brisko_h((string) $id) ?>">Edit</a>
                     <form method="post" class="d-inline" onsubmit="return confirm('Delete this outlet?')">
@@ -110,9 +176,15 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <div class="mb-3"><label class="form-label" for="outRadius">Service radius (km)</label><input class="form-control" id="outRadius" name="serviceRadiusKm" type="number" step="0.1" value="<?= brisko_h((string) ($edit['serviceRadiusKm'] ?? '25')) ?>"></div>
                     <div class="mb-3"><label class="form-label" for="outPhone">Contact</label><input class="form-control" id="outPhone" name="contactNumber" value="<?= brisko_h((string) ($edit['contactNumber'] ?? '')) ?>"></div>
-                    <div class="row g-2">
-                        <div class="col-6 mb-3"><label class="form-label" for="outOpen">Open</label><input class="form-control" id="outOpen" name="openTime" value="<?= brisko_h((string) ($edit['openTime'] ?? '11:00')) ?>"></div>
-                        <div class="col-6 mb-3"><label class="form-label" for="outClose">Close</label><input class="form-control" id="outClose" name="closeTime" value="<?= brisko_h((string) ($edit['closeTime'] ?? '23:00')) ?>"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Opening time</label>
+                        <?= brisko_time_select('open', $openParts) ?>
+                        <div class="form-text">Opens at <span id="openPreview"><?= brisko_h(brisko_format_time_12h((string) ($edit['openTime'] ?? '11:00 AM'))) ?></span></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Closing time</label>
+                        <?= brisko_time_select('close', $closeParts) ?>
+                        <div class="form-text">Closes at <span id="closePreview"><?= brisko_h(brisko_format_time_12h((string) ($edit['closeTime'] ?? '11:00 PM'))) ?></span></div>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="isActive" id="isActive" <?= ($edit['isActive'] ?? true) ? 'checked' : '' ?>>

@@ -38,6 +38,21 @@
     );
   }
 
+  document.querySelectorAll('[data-time-preview]').forEach(function (wrap) {
+    var target = document.getElementById(wrap.getAttribute('data-time-preview'));
+    var hour = wrap.querySelector('[data-role="hour"]');
+    var minute = wrap.querySelector('[data-role="minute"]');
+    var period = wrap.querySelector('[data-role="period"]');
+    if (!target || !hour || !minute || !period) return;
+    function update() {
+      var m = parseInt(minute.value, 10);
+      var mm = isNaN(m) ? '00' : (m < 10 ? '0' + m : String(m));
+      target.textContent = hour.value + ':' + mm + ' ' + period.value;
+    }
+    wrap.addEventListener('change', update);
+    update();
+  });
+
   document.addEventListener('click', function (e) {
     var addBtn = e.target.closest('.option-add');
     if (addBtn) {
