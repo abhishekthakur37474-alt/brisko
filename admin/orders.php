@@ -25,9 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $dir = (string) (brisko_config()['invoice_dir'] ?? __DIR__ . '/invoices');
             PdfInvoice::writeHtml($dir, $orderId, $order);
-            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-            $url = $scheme . '://' . $host . '/invoices/' . rawurlencode($orderId) . '.html';
+            $url = brisko_invoice_url($orderId);
             $rtdb->patch('orders/' . $orderId, ['invoiceUrl' => $url]);
             brisko_flash('success', 'Invoice generated.');
         }

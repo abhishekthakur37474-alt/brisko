@@ -24,10 +24,7 @@ try {
     }
     $dir = (string) (brisko_config()['invoice_dir'] ?? dirname(__DIR__) . '/invoices');
     PdfInvoice::writeHtml($dir, $orderId, $order);
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
-    $base = rtrim(dirname((string) ($_SERVER['SCRIPT_NAME'] ?? '')), '/api');
-    $url = $scheme . '://' . $host . $base . '/invoices/' . rawurlencode($orderId) . '.html';
+    $url = brisko_invoice_url($orderId);
     $rtdb->patch('orders/' . $orderId, ['invoiceUrl' => $url]);
     echo json_encode(['ok' => true, 'url' => $url]);
 } catch (Throwable $e) {

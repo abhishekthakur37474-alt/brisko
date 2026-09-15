@@ -11,5 +11,6 @@ return [
     'login_max_attempts' => 8,
     'login_lock_seconds' => 900,
     'invoice_dir' => dirname(__DIR__) . '/invoices',
+    'invoice_base_url' => getenv('BRISKO_INVOICE_BASE_URL') ?: 'https://blackxmarket.shop/abhishek/brisko',
     'attempts_dir' => dirname(__DIR__) . '/storage/attempts',
 ];

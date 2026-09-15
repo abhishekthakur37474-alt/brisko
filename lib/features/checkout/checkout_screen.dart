@@ -153,9 +153,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _PayOption(
                   icon: Icons.credit_card,
                   title: 'Online Payment',
-                  subtitle: 'UPI, cards & more · Coming soon',
+                  subtitle: 'UPI, cards & more · Temporarily unavailable',
                   selected: _method == 'online',
                   onTap: () => setState(() => _method = 'online'),
+                  disabled: true,
                 ),
                 const SizedBox(height: 20),
                 _NotesCard(
@@ -737,6 +738,7 @@ class _PayOption extends StatelessWidget {
   final String subtitle;
   final bool selected;
   final VoidCallback onTap;
+  final bool disabled;
 
   const _PayOption({
     required this.icon,
@@ -744,63 +746,71 @@ class _PayOption extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.onTap,
+    this.disabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: AppMotion.fast,
-          curve: AppMotion.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primarySoft.withValues(alpha: 0.5) : AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? AppColors.primary.withValues(alpha: 0.45) : AppColors.border.withValues(alpha: 0.8),
-              width: selected ? 1.4 : 1,
+    return Opacity(
+      opacity: disabled ? 0.5 : 1,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: disabled ? null : onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: AppMotion.fast,
+            curve: AppMotion.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primarySoft.withValues(alpha: 0.5) : AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? AppColors.primary.withValues(alpha: 0.45) : AppColors.border.withValues(alpha: 0.8),
+                width: selected ? 1.4 : 1,
+              ),
+              boxShadow: AppColors.softShadow,
             ),
-            boxShadow: AppColors.softShadow,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.white : AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.white : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: disabled ? AppColors.muted : (selected ? AppColors.primary : AppColors.black),
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  size: 22,
-                  color: selected ? AppColors.primary : AppColors.black,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.5,
+                          color: disabled ? AppColors.muted : AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14.5, color: AppColors.text),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.muted),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              _RadioDot(selected: selected),
-            ],
+                const SizedBox(width: 8),
+                _RadioDot(selected: selected),
+              ],
+            ),
           ),
         ),
       ),

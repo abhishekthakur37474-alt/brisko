@@ -91,6 +91,17 @@ function brisko_dt($ms): string
     return date('d M Y, h:i A', (int) ($ms / 1000));
 }
 
+function brisko_invoice_url(string $orderId): string
+{
+    $base = rtrim((string) (brisko_config()['invoice_base_url'] ?? ''), '/');
+    if ($base === '') {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $base = $scheme . '://' . $host;
+    }
+    return $base . '/invoices/' . rawurlencode($orderId) . '.html';
+}
+
 function brisko_slug(string $value): string
 {
     $value = strtolower(trim($value));
