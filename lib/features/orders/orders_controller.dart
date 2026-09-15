@@ -8,6 +8,7 @@ import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
 import '../cart/cart_item.dart';
 import '../location/location_controller.dart';
+import '../location/store_status.dart';
 import 'order_model.dart';
 
 final userOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
@@ -57,6 +58,14 @@ class OrdersController {
     if (uid == null) throw Exception('Login required');
     if (items.isEmpty) throw Exception('Cart is empty');
     if (price.finalAmount <= 0) throw Exception('Invalid amount');
+
+    final store = ref.read(storeStatusProvider);
+    if (store.isClosed) {
+      throw Exception('Brisko is closed right now. Opens ${store.nextOpenLabel ?? 'soon'}.');
+    }
+    if (orderMode == OrderMode.delivery && !ref.read(locationControllerProvider).deliveryAvailable) {
+      throw Exception('Delivery is not available for this location. Please choose Takeaway or Dine-In.');
+    }
 
     final orderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
     final now = DateTime.now().millisecondsSinceEpoch;

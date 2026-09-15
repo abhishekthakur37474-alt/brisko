@@ -13,6 +13,8 @@ import '../../core/widgets/price_row.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/quantity_stepper.dart';
 import '../offers_coupons/coupon_controller.dart';
+import '../location/store_closed_banner.dart';
+import '../location/store_status.dart';
 import 'cart_controller.dart';
 import 'cart_item.dart';
 
@@ -40,6 +42,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final items = ref.watch(cartProvider).valueOrNull ?? [];
     final price = ref.watch(priceBreakdownProvider);
     final coupon = ref.watch(appliedCouponProvider);
+    final storeClosed = ref.watch(storeStatusProvider).isClosed;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -73,6 +76,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               }
             },
           ),
+          const StoreClosedBanner(),
           Expanded(
             child: items.isEmpty
                 ? EmptyState(
@@ -181,7 +185,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       color: AppColors.white,
                       boxShadow: AppColors.softShadow,
                     ),
-                    child: PrimaryButton(label: 'Proceed to Checkout · ${rupees(price.finalAmount)}', onPressed: () => context.push('/checkout')),
+                    child: PrimaryButton(label: 'Proceed to Checkout · ${rupees(price.finalAmount)}', onPressed: storeClosed ? null : () => context.push('/checkout')),
                   ),
                 ),
                     ],

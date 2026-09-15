@@ -8,6 +8,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/brisko_top_bar.dart';
 import '../auth/auth_controller.dart';
+import '../location/store_closed_banner.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -25,6 +26,7 @@ class ProfileScreen extends ConsumerWidget {
             onTrailingTap: () => _edit(context, ref, user?.name ?? '', user?.email ?? '', user?.phone ?? ''),
             onBack: () => context.go('/home'),
           ),
+          const StoreClosedBanner(),
           Expanded(
             child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),

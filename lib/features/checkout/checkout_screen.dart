@@ -14,6 +14,8 @@ import '../addresses/address_model.dart';
 import '../auth/auth_controller.dart';
 import '../cart/cart_controller.dart';
 import '../location/location_controller.dart';
+import '../location/store_closed_banner.dart';
+import '../location/store_status.dart';
 import '../orders/orders_controller.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
@@ -49,8 +51,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     final minPoints = loyalty?.minPointsToRedeem ?? 50;
     final canRedeem = (user?.loyaltyPoints ?? 0) >= minPoints;
-    final isPickup = loc.orderMode != OrderMode.delivery;
-    final canPlace = loc.outlet != null && (isPickup || loc.address != null) && items.isNotEmpty;
+    final storeClosed = ref.watch(storeStatusProvider).isClosed;
+    final isPickup = loc.orderMode != OrderMode.delivery || loc.noCoverage;
+    final canPlace = loc.outlet != null && (isPickup || loc.address != null) && items.isNotEmpty && !storeClosed;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -65,6 +68,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
+                const StoreClosedBanner(margin: EdgeInsets.only(bottom: 12)),
                 isPickup ? _pickupInfo(loc) : _deliveryAddress(loc, addresses),
                 const SizedBox(height: 24),
                 const _SectionTitle('Loyalty points'),

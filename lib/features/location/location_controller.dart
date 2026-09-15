@@ -153,9 +153,11 @@ class LocationController extends StateNotifier<LocationState> {
   }
 
   /// User explicitly picks how they'll get the order. Only meaningful
-  /// after an outlet (in or out of radius) has been resolved.
+  /// after an outlet (in or out of radius) has been resolved. Delivery is
+  /// rejected when the user sits outside every outlet's service radius.
   void setOrderMode(OrderMode mode) {
     if (!mounted || state.outlet == null) return;
+    if (mode == OrderMode.delivery && !state.deliveryAvailable) return;
     state = state.copyWith(orderMode: mode);
   }
 
@@ -269,6 +271,7 @@ class LocationController extends StateNotifier<LocationState> {
         loading: false,
         restoring: false,
         noCoverage: true,
+        orderMode: OrderMode.takeaway,
         status: LocationUiStatus.noCoverage,
       );
       return;
@@ -281,7 +284,7 @@ class LocationController extends StateNotifier<LocationState> {
       loading: false,
       restoring: false,
       noCoverage: !withinRadius,
-      orderMode: OrderMode.delivery,
+      orderMode: withinRadius ? OrderMode.delivery : OrderMode.takeaway,
       status: withinRadius ? LocationUiStatus.detected : LocationUiStatus.noCoverage,
     );
   }
@@ -299,7 +302,7 @@ class LocationController extends StateNotifier<LocationState> {
       outlet: outlet,
       restoring: false,
       noCoverage: !withinRadius,
-      orderMode: OrderMode.delivery,
+      orderMode: withinRadius ? OrderMode.delivery : OrderMode.takeaway,
       status: outlet == null
           ? LocationUiStatus.noCoverage
           : (withinRadius ? LocationUiStatus.detected : LocationUiStatus.noCoverage),

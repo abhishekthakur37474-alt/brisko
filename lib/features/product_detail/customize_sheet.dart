@@ -10,6 +10,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/quantity_stepper.dart';
 import '../../core/widgets/veg_badge.dart';
 import '../cart/cart_controller.dart';
+import '../location/store_status.dart';
 import '../menu/product_model.dart';
 
 Future<void> showCustomizeSheet(BuildContext context, ProductModel product) async {
@@ -20,6 +21,15 @@ Future<void> showCustomizeSheet(BuildContext context, ProductModel product) asyn
 }
 
 Future<void> addProductToCart(BuildContext context, WidgetRef ref, ProductModel product) async {
+  final status = ref.read(storeStatusProvider);
+  if (status.isClosed) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Brisko is closed. Opens ${status.nextOpenLabel ?? 'soon'}.')),
+      );
+    }
+    return;
+  }
   if (product.hasCustomizations) {
     await showCustomizeSheet(context, product);
     return;
@@ -90,6 +100,7 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
   Widget build(BuildContext context) {
     final product = widget.product;
     final unit = _price();
+    final store = ref.watch(storeStatusProvider);
     final maxHeight = MediaQuery.of(context).size.height * 0.88;
 
     return ConstrainedBox(
@@ -214,9 +225,11 @@ class _CustomizeSheetState extends ConsumerState<CustomizeSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: PrimaryButton(
-                      label: 'Add ${rupees(unit * _qty)}',
+                      label: store.isClosed ? 'Closed · Opens ${store.nextOpenLabel ?? 'soon'}' : 'Add ${rupees(unit * _qty)}',
                       loading: _adding,
-                      onPressed: () async {
+                      onPressed: store.isClosed
+                          ? null
+                          : () async {
                         setState(() => _adding = true);
                         try {
                           final toppings = {for (final t in product.toppings.where((t) => _toppings.contains(t.id))) t.name: t.price};

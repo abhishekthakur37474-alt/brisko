@@ -10,12 +10,14 @@ import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/fade_slide_in.dart';
+import '../../core/widgets/pressable_scale.dart';
 import '../../core/widgets/section_header.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/glass_sheet.dart';
 import '../addresses/address_controller.dart';
 import '../addresses/address_model.dart';
 import '../location/location_controller.dart';
+import '../location/store_closed_banner.dart';
 import '../menu/catalog_providers.dart';
 import '../menu/category_icon.dart';
 import '../menu/product_card.dart';
@@ -66,6 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final coupons = ref.watch(couponsProvider).valueOrNull ?? [];
     final place = _placeName(loc.address);
     final placeLine = _placeLine(loc.address);
+    final pickupOnly = loc.noCoverage || loc.orderMode != OrderMode.delivery;
 
     final topInset = MediaQuery.paddingOf(context).top;
 
@@ -89,17 +92,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 topInset: topInset,
                 place: place,
                 placeLine: placeLine,
+                prefix: pickupOnly ? 'Pickup from' : 'Delivery at',
                 onLocation: _openAddressPicker,
                 onSearch: () => context.push('/search'),
               ),
             ),
+              const SliverToBoxAdapter(child: StoreClosedBanner()),
               if (loc.noCoverage)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: EmptyState(
-                      title: 'Out of delivery area',
-                      subtitle: 'Sorry, Brisko doesn\'t deliver to your area yet. Change your address to continue.',
+                      title: 'Delivery not available here',
+                      subtitle: 'You\'re outside our delivery radius. You can still order Takeaway or Dine-In from the outlet nearby.',
                       actionLabel: 'Change location',
                       onAction: () => context.push('/location'),
                       icon: Icons.location_off_outlined,
@@ -238,6 +243,7 @@ class _CollapsingHomeHeader extends SliverPersistentHeaderDelegate {
   final double topInset;
   final String place;
   final String placeLine;
+  final String prefix;
   final VoidCallback onLocation;
   final VoidCallback onSearch;
 
@@ -245,6 +251,7 @@ class _CollapsingHomeHeader extends SliverPersistentHeaderDelegate {
     required this.topInset,
     required this.place,
     required this.placeLine,
+    required this.prefix,
     required this.onLocation,
     required this.onSearch,
   });
@@ -262,7 +269,8 @@ class _CollapsingHomeHeader extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _CollapsingHomeHeader oldDelegate) {
     return oldDelegate.topInset != topInset ||
         oldDelegate.place != place ||
-        oldDelegate.placeLine != placeLine;
+        oldDelegate.placeLine != placeLine ||
+        oldDelegate.prefix != prefix;
   }
 
   @override
@@ -319,7 +327,7 @@ class _CollapsingHomeHeader extends SliverPersistentHeaderDelegate {
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        'Delivery at $place',
+                                        '$prefix $place',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.w800),
@@ -584,7 +592,7 @@ class _OffersForYouState extends State<_OffersForYou> {
               return AnimatedScale(
                 scale: selected ? 1 : 0.96,
                 duration: AppMotion.fast,
-                child: _OfferCard(coupon: c),
+                child: _OfferCard(coupon: c, index: i),
               );
             },
           ),
@@ -616,92 +624,189 @@ class _OffersForYouState extends State<_OffersForYou> {
 
 class _OfferCard extends StatelessWidget {
   final CouponModel coupon;
-  const _OfferCard({required this.coupon});
+  final int index;
+  const _OfferCard({required this.coupon, required this.index});
+
+  static const _palettes = [
+    [Color(0xFFEB1522), Color(0xFF7A0A10)],
+    [Color(0xFF232323), Color(0xFF0D0D0D)],
+    [Color(0xFF8A1210), Color(0xFF2A0A0C)],
+  ];
 
   String get _valueLabel {
     if (coupon.discountType == 'percent') {
-      return '${coupon.discountValue.toStringAsFixed(0)}% OFF';
+      return '${coupon.discountValue.toStringAsFixed(0)}%';
     }
-    return 'Rs ${coupon.discountValue.toStringAsFixed(0)} OFF';
+    return '₹${coupon.discountValue.toStringAsFixed(0)}';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE30613), Color(0xFF8B0A12)],
-        ),
-        boxShadow: AppColors.softShadow,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            Clipboard.setData(ClipboardData(text: coupon.code));
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${coupon.code} copied')));
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                const HugeIcon(icon: HugeIcons.strokeRoundedDiscount01, color: AppColors.white, size: 26),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        coupon.code,
-                        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 0.6),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        coupon.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.white.withValues(alpha: 0.88), fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Min order Rs ${coupon.minOrderValue.toStringAsFixed(0)}',
-                        style: TextStyle(color: AppColors.white.withValues(alpha: 0.7), fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+    final colors = _palettes[index % _palettes.length];
+    return PressableScale(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: coupon.code));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${coupon.code} copied')));
+            },
+            child: Ink(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                boxShadow: [
+                  BoxShadow(color: colors.first.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 10)),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Stack(
                   children: [
-                    Text(
-                      _valueLabel,
-                      style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                    Positioned(
+                      right: -26,
+                      top: -30,
+                      child: _fadedRing(110),
                     ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Text(
-                        'Tap to copy',
-                        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11),
+                    Positioned(
+                      right: 64,
+                      bottom: -34,
+                      child: _fadedRing(64),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const HugeIcon(icon: HugeIcons.strokeRoundedDiscount01, color: AppColors.white, size: 13),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        coupon.code,
+                                        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 12.5, letterSpacing: 0.4),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  coupon.description,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontSize: 13, height: 1.3, fontWeight: FontWeight.w500),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  'Min order ₹${coupon.minOrderValue.toStringAsFixed(0)}',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.62), fontSize: 11.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 6),
+                            child: _DashedDivider(),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(
+                            width: 68,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _valueLabel,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 22, height: 1),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  'OFF',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontWeight: FontWeight.w700, fontSize: 10, letterSpacing: 1),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.copy_rounded, size: 10, color: AppColors.primary),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        'Copy',
+                                        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 10.5),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _fadedRing(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 14),
+      ),
+    );
+  }
+}
+
+class _DashedDivider extends StatelessWidget {
+  const _DashedDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 1,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const dashHeight = 4.0;
+          const dashSpace = 5.0;
+          final count = (constraints.maxHeight / (dashHeight + dashSpace)).floor().clamp(1, 100);
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(
+              count,
+              (_) => Container(width: 1, height: dashHeight, color: Colors.white.withValues(alpha: 0.28)),
+            ),
+          );
+        },
       ),
     );
   }

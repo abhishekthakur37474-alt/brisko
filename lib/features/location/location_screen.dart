@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/widgets/primary_button.dart';
 import 'location_controller.dart';
+import 'store_status.dart';
 
 class LocationScreen extends ConsumerStatefulWidget {
   const LocationScreen({super.key});
@@ -52,8 +53,12 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = ref.watch(locationControllerProvider);
+    final store = ref.watch(storeStatusProvider);
     final status = loc.loading ? LocationUiStatus.loading : loc.status;
-    final showForm = _manual && status != LocationUiStatus.detected;
+    // When the resolved outlet is closed we lock the location entry controls
+    // and surface the next opening time instead.
+    final storeClosed = loc.outlet != null && store.isClosed;
+    final showForm = _manual && status != LocationUiStatus.detected && !storeClosed;
 
     return PopScope(
       canPop: false,
@@ -122,23 +127,27 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                                   key: const ValueKey('status'),
                                   status: status,
                                   loc: loc,
+                                  storeClosed: storeClosed,
+                                  nextOpenLabel: store.nextOpenLabel,
+                                  hoursLabel: store.hoursLabel,
                                   onDetect: () => ref.read(locationControllerProvider.notifier).detect(),
                                   onManual: _openManual,
                                   onContinue: () {
-                                    if (loc.outlet == null) return;
+                                    if (loc.outlet == null || storeClosed) return;
                                     ref.read(locationControllerProvider.notifier).setOrderMode(OrderMode.delivery);
                                     context.go('/home');
                                   },
                                   onTakeaway: () {
-                                    if (loc.outlet == null) return;
+                                    if (loc.outlet == null || storeClosed) return;
                                     ref.read(locationControllerProvider.notifier).setOrderMode(OrderMode.takeaway);
                                     context.go('/home');
                                   },
                                   onDineIn: () {
-                                    if (loc.outlet == null) return;
+                                    if (loc.outlet == null || storeClosed) return;
                                     ref.read(locationControllerProvider.notifier).setOrderMode(OrderMode.dineIn);
                                     context.go('/home');
                                   },
+                                  onBrowse: () => context.go('/home'),
                                   onChange: () {
                                     _closeManual();
                                     ref.read(locationControllerProvider.notifier).resetToIdle();
@@ -225,11 +234,15 @@ class _ManualForm extends StatelessWidget {
 class _StatusBody extends StatelessWidget {
   final LocationUiStatus status;
   final LocationState loc;
+  final bool storeClosed;
+  final String? nextOpenLabel;
+  final String hoursLabel;
   final VoidCallback onDetect;
   final VoidCallback onManual;
   final VoidCallback onContinue;
   final VoidCallback onTakeaway;
   final VoidCallback onDineIn;
+  final VoidCallback onBrowse;
   final VoidCallback onChange;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenGps;
@@ -238,11 +251,15 @@ class _StatusBody extends StatelessWidget {
     super.key,
     required this.status,
     required this.loc,
+    required this.storeClosed,
+    required this.nextOpenLabel,
+    required this.hoursLabel,
     required this.onDetect,
     required this.onManual,
     required this.onContinue,
     required this.onTakeaway,
     required this.onDineIn,
+    required this.onBrowse,
     required this.onChange,
     required this.onOpenSettings,
     required this.onOpenGps,
@@ -250,6 +267,15 @@ class _StatusBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (storeClosed && loc.outlet != null) {
+      return _ClosedCard(
+        outletName: loc.outlet!.name,
+        outletAddress: loc.outlet!.address,
+        opensAt: nextOpenLabel ?? 'soon',
+        hours: hoursLabel,
+        onBrowse: onBrowse,
+      );
+    }
     switch (status) {
       case LocationUiStatus.loading:
         return const _CopyBlock(
@@ -674,6 +700,111 @@ class _PickupCard extends StatelessWidget {
           child: const Text(
             'Choose another location',
             style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w500, fontSize: 15),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ClosedCard extends StatelessWidget {
+  final String outletName;
+  final String outletAddress;
+  final String opensAt;
+  final String hours;
+  final VoidCallback onBrowse;
+
+  const _ClosedCard({
+    required this.outletName,
+    required this.outletAddress,
+    required this.opensAt,
+    required this.hours,
+    required this.onBrowse,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'Outlet is closed',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.black),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Ordering is paused right now. We open again $opensAt.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.warningSoft,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
+                child: const Icon(Icons.access_time, color: AppColors.warning, size: 22),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Opens $opensAt',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.black),
+              ),
+              if (hours.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Open daily · $hours',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13, color: AppColors.muted),
+                ),
+              ],
+              const SizedBox(height: 14),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Text(
+                outletName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.black),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                outletAddress,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          height: 56,
+          width: double.infinity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppColors.primary, width: 1.4),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onBrowse,
+                borderRadius: BorderRadius.circular(999),
+                child: const Center(
+                  child: Text('Browse menu', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
+                ),
+              ),
+            ),
           ),
         ),
       ],

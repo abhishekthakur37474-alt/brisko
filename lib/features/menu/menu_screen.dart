@@ -9,6 +9,7 @@ import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 import '../location/location_controller.dart';
+import '../location/store_closed_banner.dart';
 import 'catalog_providers.dart';
 import 'category_icon.dart';
 import 'menu_filter_row.dart';
@@ -84,6 +85,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             onTrailingTap: () => context.push('/search'),
             onBack: () => context.go('/home'),
           ),
+          const StoreClosedBanner(),
           if (cats.isNotEmpty)
             SizedBox(
               height: 52,

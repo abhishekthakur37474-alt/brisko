@@ -1,3 +1,5 @@
+import '../../core/utils/store_hours.dart';
+
 class OutletModel {
   final String id;
   final String name;
@@ -37,6 +39,12 @@ class OutletModel {
       closeTime: (map['closeTime'] ?? '23:00') as String,
     );
   }
+
+  bool isOpenAt(DateTime now) => StoreHours.isOpenAt(now, openTime, closeTime);
+
+  DateTime nextOpeningAt(DateTime now) => StoreHours.nextOpeningAt(now, openTime, closeTime);
+
+  String get hoursLabel => '${StoreHours.format12h(openTime)} – ${StoreHours.format12h(closeTime)}';
 
   Map<String, dynamic> toMap() => {
         'name': name,

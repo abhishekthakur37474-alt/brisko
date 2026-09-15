@@ -13,6 +13,8 @@ import '../../core/widgets/status_chip.dart';
 import '../../core/widgets/veg_badge.dart';
 import '../cart/cart_controller.dart';
 import '../cart/cart_item.dart';
+import '../location/store_closed_banner.dart';
+import '../location/store_status.dart';
 import 'order_model.dart';
 import 'orders_controller.dart';
 
@@ -40,6 +42,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 
   Future<void> _reorder(CartItem item) async {
+    final status = ref.read(storeStatusProvider);
+    if (status.isClosed) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Brisko is closed. Opens ${status.nextOpenLabel ?? 'soon'}.')),
+      );
+      return;
+    }
     try {
       await ref.read(cartControllerProvider).addCustomized(
             productId: item.productId,
@@ -73,6 +83,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             subtitle: 'Reorder your favorites',
             onBack: () => context.go('/home'),
           ),
+          const StoreClosedBanner(),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Container(

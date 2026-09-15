@@ -12,6 +12,8 @@ import '../../core/widgets/pizza_loader.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/veg_badge.dart';
 import '../menu/catalog_providers.dart';
+import '../location/store_closed_banner.dart';
+import '../location/store_status.dart';
 import '../reviews/review_model.dart';
 import '../reviews/reviews_controller.dart';
 import '../wishlist/wishlist_controller.dart';
@@ -54,6 +56,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       return const Scaffold(backgroundColor: AppColors.white, body: PizzaLoader(message: 'Loading product...'));
     }
     final wished = wish.contains(product.id);
+    final store = ref.watch(storeStatusProvider);
+    final storeClosed = store.isClosed;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -109,6 +113,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             ),
                     ),
                   ),
+                ),
+                SliverToBoxAdapter(
+                  child: const StoreClosedBanner(margin: EdgeInsets.fromLTRB(16, 12, 16, 0)),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -185,8 +192,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 boxShadow: _elevated ? AppColors.softShadow : const [],
               ),
               child: PrimaryButton(
-                label: product.hasCustomizations ? 'Customize & add' : 'Add to cart · ${rupees(product.basePrice)}',
-                onPressed: () => addProductToCart(context, ref, product),
+                label: storeClosed
+                    ? 'Closed · Opens ${store.nextOpenLabel ?? 'soon'}'
+                    : (product.hasCustomizations ? 'Customize & add' : 'Add to cart · ${rupees(product.basePrice)}'),
+                onPressed: storeClosed ? null : () => addProductToCart(context, ref, product),
               ),
             ),
           ),
