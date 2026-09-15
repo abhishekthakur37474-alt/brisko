@@ -100,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'contactNumber' => trim((string) ($_POST['contactNumber'] ?? '')),
                 'openTime' => brisko_time_from_request('open', '11:00 AM'),
                 'closeTime' => brisko_time_from_request('close', '11:00 PM'),
+                'googleMapsUrl' => trim((string) ($_POST['googleMapsUrl'] ?? '')),
             ]);
             brisko_flash('success', 'Outlet saved.');
         }
@@ -140,6 +141,9 @@ require __DIR__ . '/includes/header.php';
                 <td>
                     <strong><?= brisko_h((string) ($o['name'] ?? $id)) ?></strong>
                     <div class="text-muted small"><?= brisko_h((string) ($o['address'] ?? '')) ?></div>
+                    <?php if (trim((string) ($o['googleMapsUrl'] ?? '')) !== ''): ?>
+                        <a class="small" href="<?= brisko_h((string) $o['googleMapsUrl']) ?>" target="_blank" rel="noopener">View on Google Maps</a>
+                    <?php endif; ?>
                 </td>
                 <td><?= brisko_h((string) ($o['serviceRadiusKm'] ?? '')) ?> km</td>
                 <td><?= brisko_h(brisko_format_time_12h((string) ($o['openTime'] ?? ''))) ?> – <?= brisko_h(brisko_format_time_12h((string) ($o['closeTime'] ?? ''))) ?></td>
@@ -176,6 +180,11 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <div class="mb-3"><label class="form-label" for="outRadius">Service radius (km)</label><input class="form-control" id="outRadius" name="serviceRadiusKm" type="number" step="0.1" value="<?= brisko_h((string) ($edit['serviceRadiusKm'] ?? '25')) ?>"></div>
                     <div class="mb-3"><label class="form-label" for="outPhone">Contact</label><input class="form-control" id="outPhone" name="contactNumber" value="<?= brisko_h((string) ($edit['contactNumber'] ?? '')) ?>"></div>
+                    <div class="mb-3">
+                        <label class="form-label" for="outMapUrl">Google Maps URL</label>
+                        <input class="form-control" id="outMapUrl" name="googleMapsUrl" type="url" placeholder="https://maps.app.goo.gl/..." value="<?= brisko_h((string) ($edit['googleMapsUrl'] ?? '')) ?>">
+                        <div class="form-text">Shown to customers on Takeaway &amp; Dine-In order details.</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Opening time</label>
                         <?= brisko_time_select('open', $openParts) ?>

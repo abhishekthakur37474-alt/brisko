@@ -54,6 +54,7 @@ class OrdersController {
     String? couponCode,
     OrderMode orderMode = OrderMode.delivery,
     String receiverName = '',
+    String receiverPhone = '',
   }) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
     if (uid == null) throw Exception('Login required');
@@ -61,6 +62,8 @@ class OrdersController {
     if (price.finalAmount <= 0) throw Exception('Invalid amount');
     final receiver = receiverName.trim().isNotEmpty ? receiverName.trim() : address.receiverName.trim();
     if (receiver.isEmpty) throw Exception('Receiver name is required');
+    final receiverContact = receiverPhone.trim().isNotEmpty ? receiverPhone.trim() : address.receiverPhone.trim();
+    if (receiverContact.isEmpty) throw Exception('Receiver phone is required');
 
     final store = ref.read(storeStatusProvider);
     if (store.isClosed) {
@@ -86,7 +89,7 @@ class OrdersController {
       userId: uid,
       outletId: outletId,
       items: items,
-      address: address.copyWith(receiverName: receiver),
+      address: address.copyWith(receiverName: receiver, receiverPhone: receiverContact),
       subtotal: price.subtotal,
       gstAmount: price.gstAmount,
       deliveryCharge: price.deliveryCharge,
@@ -103,6 +106,7 @@ class OrdersController {
       createdAt: now,
       updatedAt: now,
       receiverName: receiver,
+      receiverPhone: receiverContact,
       orderType: orderMode,
     );
 
@@ -112,6 +116,7 @@ class OrdersController {
       'outletOrders/$outletId/$orderId': true,
     };
     await FirebaseService.instance.ref('/').update(updates);
+    await ref.read(authControllerProvider).adoptNameIfBlank(receiver);
     await ref.read(cartControllerProvider).clear();
     ref.read(appliedCouponProvider.notifier).state = null;
     ref.read(redeemLoyaltyProvider.notifier).state = false;

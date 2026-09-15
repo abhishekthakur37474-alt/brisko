@@ -70,6 +70,9 @@ class OrderTrackingScreen extends ConsumerWidget {
           final addressHeading = isDelivery
               ? 'Delivering to'
               : (order.orderType == OrderMode.dineIn ? 'Dine-In at' : 'Pickup from');
+          final outlets = ref.watch(outletsProvider).valueOrNull ?? [];
+          final outlet = outlets.where((o) => o.id == order.outletId).firstOrNull;
+          final mapUrl = (outlet?.googleMapsUrl ?? '').trim();
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -128,7 +131,25 @@ class OrderTrackingScreen extends ConsumerWidget {
                       Text('Receiver: ${order.receiverName}', style: const TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                     ],
+                    if (order.receiverPhone.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_outlined, size: 16, color: AppColors.muted),
+                          const SizedBox(width: 6),
+                          Text(order.receiverPhone, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     Text(order.address.fullAddress),
+                    if (!isDelivery && mapUrl.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => launchUrl(Uri.parse(mapUrl)),
+                        icon: const Icon(Icons.map_outlined, size: 18),
+                        label: const Text('Open outlet location'),
+                      ),
+                    ],
                   ],
                 ),
               ),

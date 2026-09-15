@@ -7,6 +7,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/phone.dart';
 import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/price_row.dart';
 import '../addresses/address_controller.dart';
@@ -29,22 +30,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String _method = 'cod';
   final _notes = TextEditingController();
   final _receiverName = TextEditingController();
+  final _receiverPhone = TextEditingController();
   bool _loading = false;
   bool _notesOpen = false;
   bool _addressesOpen = false;
   bool _receiverEdited = false;
+  bool _phoneEdited = false;
 
   @override
   void initState() {
     super.initState();
-    final savedName = ref.read(locationControllerProvider).address?.receiverName ?? '';
-    _receiverName.text = savedName.isNotEmpty ? savedName : (ref.read(currentUserProvider).valueOrNull?.name ?? '');
+    final savedAddress = ref.read(locationControllerProvider).address;
+    final user = ref.read(currentUserProvider).valueOrNull;
+    final savedName = savedAddress?.receiverName ?? '';
+    _receiverName.text = savedName.isNotEmpty ? savedName : (user?.name ?? '');
+    final savedPhone = savedAddress?.receiverPhone ?? '';
+    _receiverPhone.text = savedPhone.isNotEmpty ? savedPhone : (user?.phone ?? '');
   }
 
   @override
   void dispose() {
     _notes.dispose();
     _receiverName.dispose();
+    _receiverPhone.dispose();
     super.dispose();
   }
 
@@ -62,6 +70,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     ref.listen(locationControllerProvider, (previous, next) {
       final name = next.address?.receiverName ?? '';
       if (!_receiverEdited && name.isNotEmpty) _receiverName.text = name;
+      final phone = next.address?.receiverPhone ?? '';
+      if (!_phoneEdited && phone.isNotEmpty) _receiverPhone.text = phone;
     });
 
     final minPoints = loyalty?.minPointsToRedeem ?? 50;
@@ -86,18 +96,34 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 const StoreClosedBanner(margin: EdgeInsets.only(bottom: 12)),
                 isPickup ? _pickupInfo(loc) : _deliveryAddress(loc, addresses),
                 const SizedBox(height: 24),
-                const _SectionTitle('Receiver name'),
+                const _SectionTitle('Receiver details'),
                 const SizedBox(height: 10),
                 _SoftCard(
-                  child: TextField(
-                    controller: _receiverName,
-                    textCapitalization: TextCapitalization.words,
-                    onChanged: (_) => _receiverEdited = true,
-                    decoration: const InputDecoration(
-                      hintText: 'Who is receiving this order?',
-                      filled: true,
-                      fillColor: AppColors.warmBg,
-                    ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _receiverName,
+                        textCapitalization: TextCapitalization.words,
+                        onChanged: (_) => _receiverEdited = true,
+                        decoration: const InputDecoration(
+                          hintText: 'Who is receiving this order?',
+                          filled: true,
+                          fillColor: AppColors.warmBg,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _receiverPhone,
+                        keyboardType: TextInputType.phone,
+                        onChanged: (_) => _phoneEdited = true,
+                        decoration: const InputDecoration(
+                          hintText: 'Receiver phone number',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                          filled: true,
+                          fillColor: AppColors.warmBg,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -176,6 +202,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receiver name is required')));
                       return;
                     }
+                    final receiverPhone = _receiverPhone.text.trim();
+                    if (receiverPhone.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receiver phone is required')));
+                      return;
+                    }
+                    if (!PhoneUtil.isValidIndianMobile(receiverPhone)) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid 10-digit mobile number')));
+                      return;
+                    }
                     setState(() => _loading = true);
                     try {
                       final fallbackAddress = loc.address ??
@@ -183,6 +218,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             id: 'pickup_${loc.outlet!.id}',
                             label: isPickup ? 'Pickup' : 'Delivery',
                             receiverName: receiver,
+                            receiverPhone: receiverPhone,
                             fullAddress: loc.outlet!.address,
                             lat: loc.outlet!.lat,
                             lng: loc.outlet!.lng,
@@ -199,6 +235,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             couponCode: coupon?.code,
                             orderMode: loc.orderMode,
                             receiverName: receiver,
+                            receiverPhone: receiverPhone,
                           );
                       if (context.mounted) context.go('/order-confirm/$id');
                     } catch (e) {

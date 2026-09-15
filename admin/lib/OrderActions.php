@@ -21,12 +21,24 @@ function brisko_update_order_status(RtdbClient $rtdb, string $orderId, string $s
     $now = brisko_now_ms();
     $stamps = is_array($order['statusTimestamps'] ?? null) ? $order['statusTimestamps'] : [];
     $stamps[$status] = $now;
-    $rtdb->patch('orders/' . $orderId, [
+    $patch = [
         'orderStatus' => $status,
         'updatedAt' => $now,
         'statusTimestamps' => $stamps,
-    ]);
+    ];
+    // Cash on Delivery is collected when the order is delivered; keep the
+    // payment status in sync so a delivered COD order no longer reads "pending".
+    $paymentMethod = (string) ($order['paymentMethod'] ?? $order['payment']['method'] ?? 'cod');
+    $paymentStatus = (string) ($order['paymentStatus'] ?? $order['payment']['status'] ?? '');
+    if ($status === 'delivered' && strtolower($paymentMethod) === 'cod' && $paymentStatus !== 'paid') {
+        $patch['paymentStatus'] = 'paid';
+        $patch['paidAt'] = $now;
+    }
+    $rtdb->patch('orders/' . $orderId, $patch);
     $order['orderStatus'] = $status;
+    if (isset($patch['paymentStatus'])) {
+        $order['paymentStatus'] = $patch['paymentStatus'];
+    }
     if ($status === 'delivered') {
         brisko_credit_loyalty($rtdb, $orderId, $order);
     }

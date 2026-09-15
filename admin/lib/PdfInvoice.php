@@ -31,6 +31,9 @@ class PdfInvoice
         }
         $addr = $order['addressSnapshot'] ?? [];
         $address = htmlspecialchars((string) ($addr['fullAddress'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $receiverName = htmlspecialchars((string) ($order['receiverName'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $receiverPhone = htmlspecialchars((string) ($addr['receiverPhone'] ?? ($order['receiverPhone'] ?? '')), ENT_QUOTES, 'UTF-8');
+        $orderType = htmlspecialchars(ucwords(str_replace('_', ' ', (string) ($order['orderType'] ?? 'delivery'))), ENT_QUOTES, 'UTF-8');
         $created = isset($order['createdAt']) ? date('d M Y, h:i A', (int) ((int) $order['createdAt'] / 1000)) : '';
         $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ' . htmlspecialchars($orderId) . '</title>
 <style>
@@ -45,8 +48,10 @@ th,td{border-bottom:1px solid #eee;padding:8px;text-align:left}
 <p class="muted">Hot. Fresh. Fast.</p>
 <p><strong>Invoice:</strong> ' . htmlspecialchars($orderId) . '<br>
 <strong>Date:</strong> ' . htmlspecialchars($created) . '<br>
-<strong>Payment:</strong> ' . htmlspecialchars((string) ($order['paymentMethod'] ?? 'cod')) . ' / ' . htmlspecialchars((string) ($order['paymentStatus'] ?? '')) . '</p>
-<p><strong>Deliver to</strong><br>' . $address . '</p>
+<strong>Payment:</strong> ' . htmlspecialchars((string) ($order['paymentMethod'] ?? 'cod')) . ' / ' . htmlspecialchars((string) ($order['paymentStatus'] ?? '')) . '<br>
+<strong>Type:</strong> ' . $orderType . '</p>
+<p><strong>Receiver:</strong> ' . $receiverName . ($receiverPhone !== '' ? (' (' . $receiverPhone . ')') : '') . '<br>
+<strong>Address</strong><br>' . $address . '</p>
 <table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead><tbody>' . $rows . '</tbody></table>
 <p>Subtotal: Rs ' . number_format((float) ($order['subtotal'] ?? 0), 2) . '<br>
 GST: Rs ' . number_format((float) ($order['gstAmount'] ?? 0), 2) . '<br>

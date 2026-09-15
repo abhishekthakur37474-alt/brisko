@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/location_service.dart';
+import '../../core/utils/phone.dart';
 import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/primary_button.dart';
 import '../auth/auth_controller.dart';
@@ -29,6 +30,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
   DetectedLocation? _detected;
 
   final _receiverName = TextEditingController();
+  final _receiverPhone = TextEditingController();
   final _line1 = TextEditingController();
   final _line2 = TextEditingController();
   final _landmark = TextEditingController();
@@ -44,7 +46,9 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
   @override
   void initState() {
     super.initState();
-    _receiverName.text = ref.read(currentUserProvider).valueOrNull?.name ?? '';
+    final user = ref.read(currentUserProvider).valueOrNull;
+    _receiverName.text = user?.name ?? '';
+    _receiverPhone.text = user?.phone ?? '';
     _web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppColors.white);
@@ -54,6 +58,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
   @override
   void dispose() {
     _receiverName.dispose();
+    _receiverPhone.dispose();
     _line1.dispose();
     _line2.dispose();
     _landmark.dispose();
@@ -138,12 +143,14 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
     final makeDefault = existing.isEmpty;
     final fullAddress = _composeAddress();
     final receiverName = _receiverName.text.trim();
+    final receiverPhone = _receiverPhone.text.trim();
 
     final savedId = await ref.read(addressControllerProvider).save(
           AddressModel(
             id: '',
             label: 'Home',
             receiverName: receiverName,
+            receiverPhone: receiverPhone,
             fullAddress: fullAddress,
             lat: _detected!.lat,
             lng: _detected!.lng,
@@ -158,6 +165,7 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
               id: savedId,
               label: 'Home',
               receiverName: receiverName,
+              receiverPhone: receiverPhone,
               fullAddress: fullAddress,
               lat: _detected!.lat,
               lng: _detected!.lng,
@@ -251,6 +259,17 @@ class _DetectAddressScreenState extends ConsumerState<DetectAddressScreen> {
             textCapitalization: TextCapitalization.words,
             decoration: _dec('Receiver name', required: true),
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Receiver name is required' : null,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _receiverPhone,
+            keyboardType: TextInputType.phone,
+            decoration: _dec('Receiver phone', required: true),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Receiver phone is required';
+              if (!PhoneUtil.isValidIndianMobile(v)) return 'Enter a valid 10-digit mobile number';
+              return null;
+            },
           ),
           const SizedBox(height: 12),
           TextFormField(

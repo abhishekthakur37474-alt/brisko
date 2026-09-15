@@ -103,6 +103,23 @@ class AuthController {
     return user;
   }
 
+  /// Mobile-OTP signups start with a blank name (see [_ensurePhoneUserRecord]).
+  /// The first receiver name captured at checkout becomes the customer's
+  /// display name so the profile no longer falls back to "Guest".
+  Future<void> adoptNameIfBlank(String candidate) async {
+    final uid = _fb.auth.currentUser?.uid;
+    final name = candidate.trim();
+    if (uid == null || name.isEmpty) return;
+    final snap = await _fb.ref('users/$uid/name').get();
+    final current = (snap.value ?? '').toString().trim();
+    if (current.isNotEmpty) return;
+    await _fb.ref('users/$uid').update({
+      'name': name,
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+    await _fb.auth.currentUser?.updateDisplayName(name);
+  }
+
   /// Called from the register screen on first login to capture the user's name.
   Future<void> registerProfile(String name) async {
     final uid = _fb.auth.currentUser?.uid;

@@ -11,6 +11,7 @@ class OutletModel {
   final String contactNumber;
   final String openTime;
   final String closeTime;
+  final String googleMapsUrl;
 
   const OutletModel({
     required this.id,
@@ -23,6 +24,7 @@ class OutletModel {
     required this.contactNumber,
     required this.openTime,
     required this.closeTime,
+    this.googleMapsUrl = '',
   });
 
   factory OutletModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -37,6 +39,7 @@ class OutletModel {
       contactNumber: (map['contactNumber'] ?? '') as String,
       openTime: (map['openTime'] ?? '11:00') as String,
       closeTime: (map['closeTime'] ?? '23:00') as String,
+      googleMapsUrl: (map['googleMapsUrl'] ?? '') as String,
     );
   }
 
@@ -56,5 +59,6 @@ class OutletModel {
         'contactNumber': contactNumber,
         'openTime': openTime,
         'closeTime': closeTime,
+        'googleMapsUrl': googleMapsUrl,
       };
 }

@@ -259,8 +259,17 @@ require __DIR__ . '/includes/header.php';
         $uid = (string) ($detail['userId'] ?? '');
         $customer = is_array($users[$uid] ?? null) ? $users[$uid] : [];
         $outletName = (string) ($outlets[$detail['outletId'] ?? '']['name'] ?? ($detail['outletId'] ?? '-'));
+        $outletMapUrl = trim((string) ($outlets[$detail['outletId'] ?? '']['googleMapsUrl'] ?? ''));
+        $orderType = brisko_order_type_label((string) ($detail['orderType'] ?? ''));
+        $receiverName = trim((string) ($detail['receiverName'] ?? ''));
+        $receiverPhone = trim((string) ($addr['receiverPhone'] ?? ''));
         $payMethod = (string) ($detail['paymentMethod'] ?? $detail['payment']['method'] ?? 'cod');
         $payStatus = (string) ($detail['paymentStatus'] ?? $detail['payment']['status'] ?? '');
+        // COD is collected on delivery; older delivered orders may still store
+        // "pending" so surface the correct status without a data migration.
+        if ($st === 'delivered' && strtolower($payMethod) === 'cod' && $payStatus !== 'paid') {
+            $payStatus = 'paid';
+        }
         ?>
     <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="true">
       <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -274,9 +283,11 @@ require __DIR__ . '/includes/header.php';
           </div>
           <div class="modal-body">
             <p class="mb-1"><strong>Placed:</strong> <?= brisko_h(brisko_dt($detail['createdAt'] ?? 0)) ?></p>
+            <p class="mb-1"><strong>Type:</strong> <?= brisko_h($orderType) ?></p>
             <p class="mb-1"><strong>Customer:</strong> <?= brisko_h((string) ($customer['name'] ?? $uid)) ?></p>
             <p class="mb-1"><strong>Phone:</strong> <?= brisko_h((string) ($customer['phone'] ?? $customer['email'] ?? '-')) ?></p>
-            <p class="mb-1"><strong>Outlet:</strong> <?= brisko_h($outletName) ?></p>
+            <p class="mb-1"><strong>Receiver:</strong> <?= brisko_h($receiverName !== '' ? $receiverName : '-') ?><?= $receiverPhone !== '' ? (' · ' . brisko_h($receiverPhone)) : '' ?></p>
+            <p class="mb-1"><strong>Outlet:</strong> <?= brisko_h($outletName) ?><?php if ($outletMapUrl !== ''): ?> — <a href="<?= brisko_h($outletMapUrl) ?>" target="_blank" rel="noopener">View on Google Maps</a><?php endif; ?></p>
             <p class="mb-1"><strong>Payment:</strong> <?= brisko_h(brisko_pretty_option($payMethod !== '' ? $payMethod : 'cod')) ?><?= $payStatus !== '' ? (' · ' . brisko_h(brisko_pretty_option($payStatus))) : '' ?></p>
             <p class="mb-1"><strong>Address:</strong> <?= brisko_h((string) ($addr['fullAddress'] ?? $addr['address'] ?? '-')) ?></p>
             <p class="mb-3"><strong>Notes:</strong> <?= brisko_h((string) ($detail['orderNotes'] ?? '-')) ?></p>

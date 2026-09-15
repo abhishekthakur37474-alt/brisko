@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/phone.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/brisko_top_bar.dart';
 import '../../core/widgets/empty_state.dart';
@@ -72,8 +73,14 @@ class AddressesScreen extends ConsumerWidget {
                                 ],
                               ],
                             ),
-                            if (a.receiverName.isNotEmpty)
-                              Text('Receiver: ${a.receiverName}', style: const TextStyle(color: AppColors.muted)),
+                            if (a.receiverName.isNotEmpty || a.receiverPhone.isNotEmpty)
+                              Text(
+                                'Receiver: ${[
+                                  if (a.receiverName.isNotEmpty) a.receiverName,
+                                  if (a.receiverPhone.isNotEmpty) a.receiverPhone,
+                                ].join(' · ')}',
+                                style: const TextStyle(color: AppColors.muted),
+                              ),
                             Text(a.fullAddress, style: const TextStyle(color: AppColors.muted)),
                           ],
                         ),
@@ -104,6 +111,7 @@ class AddressesScreen extends ConsumerWidget {
   Future<void> _edit(BuildContext context, WidgetRef ref, AddressModel? existing) async {
     final label = TextEditingController(text: existing?.label ?? 'Home');
     final receiver = TextEditingController(text: existing?.receiverName ?? '');
+    final receiverPhone = TextEditingController(text: existing?.receiverPhone ?? '');
     final address = TextEditingController(text: existing?.fullAddress ?? '');
     final formKey = GlobalKey<FormState>();
     await showGlassSheet(
@@ -129,6 +137,17 @@ class AddressesScreen extends ConsumerWidget {
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Receiver name is required' : null,
                 ),
                 const SizedBox(height: 8),
+                TextFormField(
+                  controller: receiverPhone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Receiver phone *'),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Receiver phone is required';
+                    if (!PhoneUtil.isValidIndianMobile(v)) return 'Enter a valid 10-digit mobile number';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 8),
                 TextField(controller: address, decoration: const InputDecoration(labelText: 'Full address')),
                 const SizedBox(height: 12),
                 PrimaryButton(
@@ -141,6 +160,7 @@ class AddressesScreen extends ConsumerWidget {
                           id: existing.id,
                           label: label.text,
                           receiverName: receiver.text.trim(),
+                          receiverPhone: receiverPhone.text.trim(),
                           fullAddress: address.text,
                           lat: existing.lat,
                           lng: existing.lng,

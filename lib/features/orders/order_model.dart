@@ -36,6 +36,8 @@ class OrderModel {
   final String? invoiceUrl;
   // Name of the person receiving/collecting the order.
   final String receiverName;
+  // Contact number of the person receiving/collecting the order.
+  final String receiverPhone;
   // How the customer gets the order: delivery / takeaway / dineIn.
   final OrderMode orderType;
 
@@ -62,6 +64,7 @@ class OrderModel {
     required this.updatedAt,
     this.invoiceUrl,
     this.receiverName = '',
+    this.receiverPhone = '',
     this.orderType = OrderMode.delivery,
   });
 
@@ -93,6 +96,16 @@ class OrderModel {
         stamps[k.toString()] = (v as num).toInt();
       });
     }
+    final orderStatus = _normalizeStatus((map['orderStatus'] ?? 'placed').toString());
+    final paymentMethod = (map['paymentMethod'] ?? 'cod') as String;
+    final rawPaymentStatus = (map['paymentStatus'] ?? 'pending') as String;
+    // COD is collected on delivery. Older delivered orders may still carry a
+    // stale "pending" value in the database, so derive the correct status here.
+    final paymentStatus = (orderStatus == 'delivered' &&
+            paymentMethod.toLowerCase() == 'cod' &&
+            rawPaymentStatus != 'paid')
+        ? 'paid'
+        : rawPaymentStatus;
     return OrderModel(
       id: id,
       userId: (map['userId'] ?? '') as String,
@@ -107,9 +120,9 @@ class OrderModel {
       loyaltyPointsUsed: (map['loyaltyPointsUsed'] as num?)?.toInt() ?? 0,
       loyaltyDiscount: (map['loyaltyDiscount'] as num?)?.toDouble() ?? 0,
       finalAmount: (map['finalAmount'] as num?)?.toDouble() ?? 0,
-      paymentMethod: (map['paymentMethod'] ?? 'cod') as String,
-      paymentStatus: (map['paymentStatus'] ?? 'pending') as String,
-      orderStatus: _normalizeStatus((map['orderStatus'] ?? 'placed').toString()),
+      paymentMethod: paymentMethod,
+      paymentStatus: paymentStatus,
+      orderStatus: orderStatus,
       statusTimestamps: stamps,
       orderNotes: (map['orderNotes'] ?? '') as String,
       createdAt: (map['createdAt'] as num?)?.toInt() ?? 0,
@@ -118,6 +131,9 @@ class OrderModel {
       receiverName: (map['receiverName'] as String?)?.trim().isNotEmpty == true
           ? map['receiverName'] as String
           : addr.receiverName,
+      receiverPhone: (map['receiverPhone'] as String?)?.trim().isNotEmpty == true
+          ? map['receiverPhone'] as String
+          : addr.receiverPhone,
       orderType: _parseOrderType(map['orderType']),
     );
   }
@@ -151,6 +167,7 @@ class OrderModel {
       'updatedAt': updatedAt,
       'invoiceUrl': invoiceUrl,
       'receiverName': receiverName,
+      'receiverPhone': receiverPhone,
       'orderType': orderType.name,
     };
   }
