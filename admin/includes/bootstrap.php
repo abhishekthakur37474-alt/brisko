@@ -42,6 +42,18 @@ function brisko_auth(): AdminAuth
     return $auth;
 }
 
+/**
+ * True when at least one admin account exists in RTDB.
+ */
+function brisko_has_admin(): bool
+{
+    try {
+        return brisko_auth()->hasAny();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
 function brisko_h(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -62,6 +74,17 @@ function brisko_redirect(string $path): never
 {
     header('Location: ' . $path);
     exit;
+}
+
+/**
+ * Sends a visitor to the correct admin entry point.
+ *
+ * - No admin provisioned in RTDB -> first-run registration page.
+ * - An admin already exists      -> login page.
+ */
+function brisko_admin_entry_redirect(): never
+{
+    brisko_redirect(brisko_has_admin() ? 'login.php' : 'register.php');
 }
 
 function brisko_map(?array $node): array

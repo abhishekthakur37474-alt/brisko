@@ -5,7 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 if (empty($_SESSION['admin_id'])) {
-    brisko_redirect('login.php');
+    // No admin provisioned yet -> first-run registration, otherwise -> login.
+    brisko_admin_entry_redirect();
 }
 
 $ADMIN = [

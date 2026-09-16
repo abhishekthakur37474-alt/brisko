@@ -103,6 +103,8 @@ if (!function_exists('brisko_config')) {
                 // Optional: enables the PHP side to also seed the RTDB user record.
                 'database_url' => env_value('FIREBASE_DATABASE_URL', ''),
             ],
+            // DISABLED: Cashfree was replaced by UPI Intent payments. Kept for
+            // reference; no endpoint reads this block anymore.
             'cashfree' => [
                 // Server-side only. NEVER expose these to Flutter or Firebase.
                 'client_id' => env_value('CASHFREE_CLIENT_ID', ''),

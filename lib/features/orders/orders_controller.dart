@@ -55,6 +55,7 @@ class OrdersController {
     OrderMode orderMode = OrderMode.delivery,
     String receiverName = '',
     String receiverPhone = '',
+    bool paymentConfirmed = false,
   }) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
     if (uid == null) throw Exception('Login required');
@@ -82,6 +83,10 @@ class OrdersController {
         );
     if (paymentMethod == 'online' && !pay.success) {
       throw Exception(pay.message ?? 'Online payment is coming soon. Choose Cash on Delivery.');
+    }
+    // UPI Intent orders are only created after the UPI app confirms the payment.
+    if (paymentMethod == 'upi_intent' && !paymentConfirmed) {
+      throw Exception('UPI payment was not completed. Please try again.');
     }
 
     final order = OrderModel(

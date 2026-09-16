@@ -1,3 +1,9 @@
+// =============================================================================
+// DISABLED: The Cashfree integration was replaced by UPI Intent payments.
+// The code below is kept for reference only and is not compiled.
+// See `upi_intent_service.dart` for the active payment flow.
+// =============================================================================
+/*
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -206,3 +212,4 @@ class CashfreeService {
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
+*/

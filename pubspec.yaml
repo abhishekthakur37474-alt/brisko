@@ -29,7 +29,9 @@ dependencies:
   hugeicons: ^1.1.7
   lottie: ^3.3.1
   webview_flutter: ^4.10.0
-  flutter_cashfree_pg_sdk: ^2.4.0+52
+  # Online payments now use UPI Intent instead of Cashfree.
+  # flutter_cashfree_pg_sdk: ^2.4.0+52
+  upi_pay: ^1.1.0
 
 dev_dependencies:
   flutter_test:

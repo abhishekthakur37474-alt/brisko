@@ -14,9 +14,16 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../../helpers/bootstrap.php';
-require_once __DIR__ . '/../../services/firebase_service.php';
-require_once __DIR__ . '/../../services/cashfree_service.php';
-require_once __DIR__ . '/../../services/order_service.php';
+// DISABLED: Cashfree integration replaced by UPI Intent (app-side upi://pay flow).
+// require_once __DIR__ . '/../../services/firebase_service.php';
+// require_once __DIR__ . '/../../services/cashfree_service.php';
+// require_once __DIR__ . '/../../services/order_service.php';
+
+// -----------------------------------------------------------------------------
+// Cashfree webhooks are disabled. The original implementation is kept below for
+// reference and is unreachable.
+// -----------------------------------------------------------------------------
+json_response(['success' => false, 'message' => 'Cashfree payments are disabled.'], 410);
 
 // The webhook is not user-authenticated: trust comes from the signature only.
 $rawBody = file_get_contents('php://input');

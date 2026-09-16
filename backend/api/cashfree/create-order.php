@@ -14,12 +14,19 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../../helpers/bootstrap.php';
-require_once __DIR__ . '/../../services/firebase_service.php';
-require_once __DIR__ . '/../../services/cashfree_service.php';
-require_once __DIR__ . '/../../services/order_service.php';
-require_once __DIR__ . '/../../helpers/auth_guard.php';
+// DISABLED: Cashfree integration replaced by UPI Intent (app-side upi://pay flow).
+// require_once __DIR__ . '/../../services/firebase_service.php';
+// require_once __DIR__ . '/../../services/cashfree_service.php';
+// require_once __DIR__ . '/../../services/order_service.php';
+// require_once __DIR__ . '/../../helpers/auth_guard.php';
 
 require_post();
+
+// -----------------------------------------------------------------------------
+// Cashfree online payments are disabled. The app now pays through UPI Intent.
+// The original implementation is kept below for reference and is unreachable.
+// -----------------------------------------------------------------------------
+throw new ApiException('Cashfree payments are disabled. Online payments now use UPI Intent.', 410);
 
 $uid = require_firebase_uid();
 $body = json_body();

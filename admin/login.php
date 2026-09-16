@@ -8,6 +8,11 @@ if (!empty($_SESSION['admin_id'])) {
     brisko_redirect('index.php');
 }
 
+// No admin account exists yet: send the visitor to first-run setup instead.
+if (!brisko_has_admin()) {
+    brisko_redirect('register.php');
+}
+
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     brisko_csrf_check();

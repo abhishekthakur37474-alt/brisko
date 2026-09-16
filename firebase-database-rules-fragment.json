@@ -2,7 +2,7 @@
   "orders": {
     "$orderId": {
       ".read": "auth != null && data.child('userId').val() === auth.uid",
-      ".write": "auth != null && ((!data.exists() && newData.child('userId').val() === auth.uid && newData.child('paymentMethod').val() === 'cod' && newData.child('paymentStatus').val() === 'pending') || (data.exists() && data.child('userId').val() === auth.uid && data.child('paymentStatus').val() === newData.child('paymentStatus').val() && data.child('cashfreeOrderStatus').val() === newData.child('cashfreeOrderStatus').val() && data.child('paidAt').val() === newData.child('paidAt').val() && data.child('paymentSessionId').val() === newData.child('paymentSessionId').val() && data.child('paymentMethod').val() === newData.child('paymentMethod').val() && data.child('finalAmount').val() === newData.child('finalAmount').val()))"
+      ".write": "auth != null && ((!data.exists() && newData.child('userId').val() === auth.uid && newData.child('paymentMethod').val() === 'cod' && newData.child('paymentStatus').val() === 'pending') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('paymentMethod').val() === 'upi_intent' && newData.child('paymentStatus').val() === 'paid') || (data.exists() && data.child('userId').val() === auth.uid && data.child('paymentStatus').val() === newData.child('paymentStatus').val() && data.child('cashfreeOrderStatus').val() === newData.child('cashfreeOrderStatus').val() && data.child('paidAt').val() === newData.child('paidAt').val() && data.child('paymentSessionId').val() === newData.child('paymentSessionId').val() && data.child('paymentMethod').val() === newData.child('paymentMethod').val() && data.child('finalAmount').val() === newData.child('finalAmount').val()))"
     }
   },
   "userOrders": {

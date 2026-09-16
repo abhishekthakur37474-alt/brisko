@@ -14,13 +14,35 @@ class ApiConfig {
     defaultValue: 'https://briskopizza.com/backend',
   );
 
-  /// Cashfree environment used by the Flutter SDK to build the payment session.
+  // ===========================================================================
+  // Online payments now use UPI Intent. The Cashfree integration was commented
+  // out in favour of UPI Intent and is kept below for reference only.
+  // ===========================================================================
+  //
+  // /// Cashfree environment used by the Flutter SDK to build the payment session.
+  // ///
+  // /// This must match CASHFREE_ENVIRONMENT on the PHP backend:
+  // ///   flutter run --dart-define=CASHFREE_ENV=SANDBOX
+  // static const String cashfreeEnvironment = String.fromEnvironment(
+  //   'CASHFREE_ENV',
+  //   defaultValue: 'SANDBOX',
+  // );
+
+  /// Merchant UPI VPA (UPI ID) that receives the UPI Intent payment.
   ///
-  /// This must match CASHFREE_ENVIRONMENT on the PHP backend:
-  ///   flutter run --dart-define=CASHFREE_ENV=SANDBOX
-  static const String cashfreeEnvironment = String.fromEnvironment(
-    'CASHFREE_ENV',
-    defaultValue: 'SANDBOX',
+  /// This is a public payee address, not a secret. Set it per environment:
+  ///   flutter run --dart-define=UPI_MERCHANT_VPA=brisko@ybl
+  static const String upiMerchantVpa = String.fromEnvironment(
+    'UPI_MERCHANT_VPA',
+    defaultValue: 'brisko@upi',
+  );
+
+  /// Payee display name shown in the UPI app while paying.
+  ///
+  ///   flutter run --dart-define=UPI_MERCHANT_NAME=Brisko%20Pizza
+  static const String upiMerchantName = String.fromEnvironment(
+    'UPI_MERCHANT_NAME',
+    defaultValue: 'Brisko Pizza',
   );
 
   static Uri sendOtp() => Uri.parse('$baseUrl/api/send-otp.php');
@@ -28,8 +50,9 @@ class ApiConfig {
   static Uri resendOtp() => Uri.parse('$baseUrl/api/resend-otp.php');
   static Uri logout() => Uri.parse('$baseUrl/api/logout.php');
 
-  static Uri createOnlineOrder() => Uri.parse('$baseUrl/api/cashfree/create-order.php');
-  static Uri verifyOnlinePayment(String orderId) => Uri.parse(
-        '$baseUrl/api/cashfree/verify-payment.php',
-      ).replace(queryParameters: {'order_id': orderId});
+  // --- Cashfree online payment endpoints (disabled, kept for reference) ------
+  // static Uri createOnlineOrder() => Uri.parse('$baseUrl/api/cashfree/create-order.php');
+  // static Uri verifyOnlinePayment(String orderId) => Uri.parse(
+  //       '$baseUrl/api/cashfree/verify-payment.php',
+  //     ).replace(queryParameters: {'order_id': orderId});
 }

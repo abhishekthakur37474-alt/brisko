@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
-import 'package:flutter_cashfree_pg_sdk/utils/cfexceptions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:upi_pay/upi_pay.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/services/cashfree_service.dart';
+import '../../core/services/upi_intent_service.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/phone.dart';
@@ -46,14 +42,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _receiverEdited = false;
   bool _phoneEdited = false;
 
-  final _cashfree = CashfreeService();
-  final _cashfreeGateway = CFPaymentGatewayService();
-  String? _pendingOrderId;
+  // Cashfree integration (disabled, replaced by UPI Intent):
+  // final _cashfree = CashfreeService();
+  // final _cashfreeGateway = CFPaymentGatewayService();
+  // String? _pendingOrderId;
+
+  final _upi = UpiIntentService();
 
   @override
   void initState() {
     super.initState();
-    _cashfreeGateway.setCallback(_onCashfreeVerify, _onCashfreeError);
+    // _cashfreeGateway.setCallback(_onCashfreeVerify, _onCashfreeError);
     final savedAddress = ref.read(locationControllerProvider).address;
     final user = ref.read(currentUserProvider).valueOrNull;
     final savedName = savedAddress?.receiverName ?? '';
@@ -164,11 +163,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
                 const SizedBox(height: 10),
                 _PayOption(
-                  icon: Icons.credit_card,
-                  title: 'Online Payment',
-                  subtitle: 'UPI, cards, netbanking & more',
-                  selected: _method == 'online',
-                  onTap: () => setState(() => _method = 'online'),
+                  icon: Icons.qr_code_scanner,
+                  title: 'UPI Payment',
+                  subtitle: 'Pay instantly using any UPI app',
+                  selected: _method == 'upi_intent',
+                  onTap: () => setState(() => _method = 'upi_intent'),
                 ),
                 const SizedBox(height: 20),
                 _NotesCard(
@@ -268,8 +267,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               isDefault: true,
             ));
 
-    if (_method == 'online') {
-      await _payOnline(
+    if (_method == 'upi_intent') {
+      await _payWithUpi(
         loc: loc,
         items: items,
         address: deliveryOrOutletAddress,
@@ -277,6 +276,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         receiver: receiver,
         receiverPhone: receiverPhone,
         couponCode: couponCode,
+        price: price,
       );
       return;
     }
@@ -303,7 +303,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<void> _payOnline({
+  // ===========================================================================
+  // UPI Intent payment flow (replaces the Cashfree integration).
+  //
+  // The order is created ONLY after the UPI app confirms the payment, so backing
+  // out of the UPI app without paying never places an order.
+  // ===========================================================================
+  Future<void> _payWithUpi({
     required LocationState loc,
     required List<CartItem> items,
     required AddressModel address,
@@ -311,74 +317,179 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     required String receiver,
     required String receiverPhone,
     required String? couponCode,
+    required PriceBreakdown price,
   }) async {
     setState(() => _loading = true);
     try {
-      final session = await _cashfree.createOrder(
-        items: items,
-        outletId: outletId,
-        address: address,
-        orderMode: loc.orderMode,
-        receiverName: receiver,
-        receiverPhone: receiverPhone,
-        notes: _notes.text,
-        couponCode: couponCode,
-        redeemLoyalty: ref.read(redeemLoyaltyProvider),
+      if (!_upi.isConfigured) {
+        _snack('UPI payments are not configured yet. Please choose Cash on Delivery.');
+        return;
+      }
+      final apps = await _upi.installedApps();
+      if (!mounted) return;
+      if (apps.isEmpty) {
+        _snack('No UPI app found on this device. Install one or choose Cash on Delivery.');
+        return;
+      }
+
+      final selected = await _chooseUpiApp(apps, price.finalAmount);
+      if (selected == null || !mounted) return;
+
+      final transactionRef = 'BRISKO${DateTime.now().millisecondsSinceEpoch}';
+      final result = await _upi.pay(
+        app: selected.upiApplication,
+        amount: price.finalAmount,
+        transactionRef: transactionRef,
+        note: 'Brisko order $transactionRef',
       );
 
-      _pendingOrderId = session.orderId;
+      if (!mounted) return;
 
-      final cfSession = CFSessionBuilder()
-          .setEnvironment(_cashfree.environment)
-          .setOrderId(session.orderId)
-          .setPaymentSessionId(session.paymentSessionId)
-          .build();
-      final payment = CFWebCheckoutPaymentBuilder().setSession(cfSession).build();
-      _cashfreeGateway.doPayment(payment);
-    } on OnlinePaymentException catch (e) {
+      if (!result.paid) {
+        _snack(
+          result.status == UpiTransactionStatus.failure
+              ? 'UPI payment was cancelled or failed. Your order was not placed.'
+              : 'We could not confirm the UPI payment, so your order was not placed. '
+                  'Please try again or choose Cash on Delivery.',
+        );
+        return;
+      }
+
+      final id = await ref.read(ordersControllerProvider).placeOrder(
+            items: items,
+            address: address,
+            outletId: outletId,
+            price: price,
+            paymentMethod: 'upi_intent',
+            notes: _notes.text,
+            couponCode: couponCode,
+            orderMode: loc.orderMode,
+            receiverName: receiver,
+            receiverPhone: receiverPhone,
+            paymentConfirmed: true,
+          );
+      if (mounted) context.go('/order-confirm/$id');
+    } on UpiIntentException catch (e) {
       if (mounted) _snack(e.message);
-    } on CFException catch (e) {
-      if (mounted) _snack(e.message);
-    } catch (_) {
-      if (mounted) _snack('Unable to start payment. Please try again.');
+    } catch (e) {
+      if (mounted) _snack('$e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _onCashfreeVerify(String orderId) {
-    _verifyOnlinePayment(orderId.isEmpty ? _pendingOrderId : orderId);
+  Future<ApplicationMeta?> _chooseUpiApp(List<ApplicationMeta> apps, double amount) {
+    return showModalBottomSheet<ApplicationMeta>(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 14),
+                Text(
+                  'Choose a UPI app',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Paying ${rupees(amount)}',
+                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.muted),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: apps.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final app = apps[index];
+                      return ListTile(
+                        leading: app.iconImage(28),
+                        title: Text(
+                          app.upiApplication.getAppName(),
+                          style: GoogleFonts.inter(fontSize: 15, color: AppColors.text),
+                        ),
+                        onTap: () => Navigator.of(sheetContext).pop(app),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
-  void _onCashfreeError(CFErrorResponse errorResponse, String orderId) {
-    _verifyOnlinePayment(orderId.isEmpty ? _pendingOrderId : orderId);
-  }
-
-  Future<void> _verifyOnlinePayment(String? orderId) async {
-    if (orderId == null || orderId.isEmpty) {
-      _snack('Payment failed. Please try again.');
-      return;
-    }
-
-    _snack('Payment verification is in progress. Please wait.');
-
-    try {
-      final result = await _cashfree.verifyPayment(orderId);
-      if (!mounted) return;
-
-      if (result.paid) {
-        await ref.read(cartControllerProvider).clear();
-        ref.read(appliedCouponProvider.notifier).state = null;
-        ref.read(redeemLoyaltyProvider.notifier).state = false;
-        _pendingOrderId = null;
-        if (mounted) context.go('/order-confirm/$orderId');
-      } else {
-        _snack(result.message ?? 'Payment failed. Please try again.');
-      }
-    } catch (_) {
-      if (mounted) _snack('Payment verification is in progress. Please try again in a moment.');
-    }
-  }
+  // --- Cashfree integration (disabled, replaced by UPI Intent) ---------------
+  // Future<void> _payOnline({
+  //   required LocationState loc,
+  //   required List<CartItem> items,
+  //   required AddressModel address,
+  //   required String outletId,
+  //   required String receiver,
+  //   required String receiverPhone,
+  //   required String? couponCode,
+  // }) async {
+  //   setState(() => _loading = true);
+  //   try {
+  //     final session = await _cashfree.createOrder(
+  //       items: items,
+  //       outletId: outletId,
+  //       address: address,
+  //       orderMode: loc.orderMode,
+  //       receiverName: receiver,
+  //       receiverPhone: receiverPhone,
+  //       notes: _notes.text,
+  //       couponCode: couponCode,
+  //       redeemLoyalty: ref.read(redeemLoyaltyProvider),
+  //     );
+  //
+  //     _pendingOrderId = session.orderId;
+  //
+  //     final cfSession = CFSessionBuilder()
+  //         .setEnvironment(_cashfree.environment)
+  //         .setOrderId(session.orderId)
+  //         .setPaymentSessionId(session.paymentSessionId)
+  //         .build();
+  //     final payment = CFWebCheckoutPaymentBuilder().setSession(cfSession).build();
+  //     _cashfreeGateway.doPayment(payment);
+  //   } on OnlinePaymentException catch (e) {
+  //     if (mounted) _snack(e.message);
+  //   } on CFException catch (e) {
+  //     if (mounted) _snack(e.message);
+  //   } catch (_) {
+  //     if (mounted) _snack('Unable to start payment. Please try again.');
+  //   } finally {
+  //     if (mounted) setState(() => _loading = false);
+  //   }
+  // }
+  //
+  // void _onCashfreeVerify(String orderId) {
+  //   _verifyOnlinePayment(orderId.isEmpty ? _pendingOrderId : orderId);
+  // }
+  //
+  // void _onCashfreeError(CFErrorResponse errorResponse, String orderId) {
+  //   _verifyOnlinePayment(orderId.isEmpty ? _pendingOrderId : orderId);
+  // }
+  //
+  // Future<void> _verifyOnlinePayment(String? orderId) async { ... }
 
   void _snack(String message) {
     if (!mounted) return;

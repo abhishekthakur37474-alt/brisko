@@ -52,5 +52,19 @@
             <action android:name="android.intent.action.DIAL"/>
             <data android:scheme="tel"/>
         </intent>
+        <!-- UPI Intent: allows discovering and launching installed UPI apps. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="upi"/>
+        </intent>
+        <package android:name="com.google.android.apps.nbu.paisa.user"/>
+        <package android:name="com.phonepe.app"/>
+        <package android:name="net.one97.paytm"/>
+        <package android:name="com.mobikwik_new"/>
+        <package android:name="in.org.npci.upiapp"/>
+        <package android:name="com.freecharge.android"/>
+        <package android:name="com.whatsapp"/>
+        <package android:name="in.amazon.mShop.android.shopping"/>
+        <package android:name="com.truecaller"/>
     </queries>
 </manifest>

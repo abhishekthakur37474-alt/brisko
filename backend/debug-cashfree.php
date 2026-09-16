@@ -1,8 +1,11 @@
 <?php
-require_once __DIR__.'/helpers/bootstrap.php';
-require_once __DIR__.'/services/firebase_service.php';
-require_once __DIR__.'/services/cashfree_service.php';
-require_once __DIR__.'/services/order_service.php';
+// DISABLED: Cashfree replaced by UPI Intent. Kept for reference only.
+// require_once __DIR__.'/helpers/bootstrap.php';
+// require_once __DIR__.'/services/firebase_service.php';
+// require_once __DIR__.'/services/cashfree_service.php';
+// require_once __DIR__.'/services/order_service.php';
+
+exit('debug-cashfree.php is disabled: online payments now use UPI Intent.');
 
 $config = brisko_config();
 $cashfree = new CashfreeService($config['cashfree']);

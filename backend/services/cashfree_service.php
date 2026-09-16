@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 /**
+ * DISABLED: The Cashfree integration was replaced by UPI Intent payments.
+ * This service is kept for reference only and is no longer wired into any
+ * endpoint (see api/cashfree/*, which now return 410 Gone).
+ *
  * Centralised Cashfree Payment Gateway client.
  *
  * Credentials and the API base URL live here only — they must never be copied

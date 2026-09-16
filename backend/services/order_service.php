@@ -2,6 +2,10 @@
     declare(strict_types=1);
 
     /**
+     * DISABLED: createOnlineOrder()/resolveCashfreeStatus() belong to the old
+     * Cashfree flow and are no longer called. Online payments now use UPI Intent,
+     * handled fully on the client (see lib/core/services/upi_intent_service.dart).
+     *
      * Server-side order + payment service for the Cashfree online flow.
      *
      * The server is the single source of truth for:
