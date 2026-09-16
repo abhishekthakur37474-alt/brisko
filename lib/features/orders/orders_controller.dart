@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/firebase_service.dart';
 import '../../core/services/payment_service.dart';
+import '../../core/services/upi_verification_service.dart';
 import '../../core/utils/pricing.dart';
 import '../addresses/address_model.dart';
 import '../auth/auth_controller.dart';
@@ -43,6 +46,7 @@ class OrdersController {
   OrdersController(this.ref);
   final Ref ref;
   final _payments = PaymentService();
+  final _upiVerifier = UpiVerificationService();
 
   Future<String> placeOrder({
     required List<CartItem> items,
@@ -55,7 +59,10 @@ class OrdersController {
     OrderMode orderMode = OrderMode.delivery,
     String receiverName = '',
     String receiverPhone = '',
-    bool paymentConfirmed = false,
+    String upiTxnId = '',
+    String upiResponseCode = '',
+    String upiPayerVpa = '',
+    String upiTransactionRef = '',
   }) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
     if (uid == null) throw Exception('Login required');
@@ -76,17 +83,20 @@ class OrdersController {
 
     final orderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
     final now = DateTime.now().millisecondsSinceEpoch;
-    final pay = await _payments.gatewayFor(paymentMethod).pay(
-          amount: price.finalAmount,
-          orderId: orderId,
-          currency: 'INR',
-        );
-    if (paymentMethod == 'online' && !pay.success) {
-      throw Exception(pay.message ?? 'Online payment is coming soon. Choose Cash on Delivery.');
-    }
-    // UPI Intent orders are only created after the UPI app confirms the payment.
-    if (paymentMethod == 'upi_intent' && !paymentConfirmed) {
-      throw Exception('UPI payment was not completed. Please try again.');
+    final isUpi = paymentMethod == 'upi_intent';
+
+    // Only the 'online' mock gateway is routed through PaymentService. UPI Intent
+    // is driven by the UPI app in checkout and confirmed server-side, so it never
+    // needs a client gateway (the old always-success stub was removed).
+    if (paymentMethod == 'online') {
+      final pay = await _payments.gatewayFor('online').pay(
+            amount: price.finalAmount,
+            orderId: orderId,
+            currency: 'INR',
+          );
+      if (!pay.success) {
+        throw Exception(pay.message ?? 'Online payment is coming soon. Choose Cash on Delivery.');
+      }
     }
 
     final order = OrderModel(
@@ -104,7 +114,9 @@ class OrdersController {
       loyaltyDiscount: price.loyaltyDiscount,
       finalAmount: price.finalAmount,
       paymentMethod: paymentMethod,
-      paymentStatus: paymentMethod == 'cod' ? 'pending' : (pay.success ? 'paid' : 'pending'),
+      // UpI Intent orders are always created pending. The client can never mark
+      // an online order paid; the backend verifies and flips the status.
+      paymentStatus: 'pending',
       orderStatus: 'placed',
       statusTimestamps: {'placed': now},
       orderNotes: notes,
@@ -113,6 +125,11 @@ class OrdersController {
       receiverName: receiver,
       receiverPhone: receiverContact,
       orderType: orderMode,
+      upiTxnId: isUpi ? upiTxnId : '',
+      upiResponseCode: isUpi ? upiResponseCode : '',
+      upiPayerVpa: isUpi ? upiPayerVpa : '',
+      upiTransactionRef: isUpi ? upiTransactionRef : '',
+      paymentVerification: isUpi ? 'pending' : 'not_required',
     );
 
     final updates = <String, dynamic>{
@@ -125,7 +142,43 @@ class OrdersController {
     await ref.read(cartControllerProvider).clear();
     ref.read(appliedCouponProvider.notifier).state = null;
     ref.read(redeemLoyaltyProvider.notifier).state = false;
+
+    // Ask the backend to verify the UPI payment. Best-effort: the order already
+    // exists as pending and an admin can reconcile it if verification is not
+    // configured or the server is unreachable.
+    if (isUpi) {
+      unawaited(_verifyUpiPayment(
+        orderId: orderId,
+        amount: price.finalAmount,
+        upiTxnId: upiTxnId,
+        upiResponseCode: upiResponseCode,
+        upiPayerVpa: upiPayerVpa,
+        transactionRef: upiTransactionRef,
+      ));
+    }
     return orderId;
+  }
+
+  Future<void> _verifyUpiPayment({
+    required String orderId,
+    required double amount,
+    required String upiTxnId,
+    required String upiResponseCode,
+    required String upiPayerVpa,
+    required String transactionRef,
+  }) async {
+    try {
+      await _upiVerifier.verify(
+        orderId: orderId,
+        amount: amount,
+        upiTxnId: upiTxnId,
+        upiResponseCode: upiResponseCode,
+        upiPayerVpa: upiPayerVpa,
+        transactionRef: transactionRef,
+      );
+    } catch (_) {
+      // Non-fatal: the order stays pending until it is verified or reconciled.
+    }
   }
 
   Future<void> cancel(String orderId) async {

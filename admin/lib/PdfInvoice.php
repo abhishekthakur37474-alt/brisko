@@ -35,6 +35,18 @@ class PdfInvoice
         $receiverPhone = htmlspecialchars((string) ($addr['receiverPhone'] ?? ($order['receiverPhone'] ?? '')), ENT_QUOTES, 'UTF-8');
         $orderType = htmlspecialchars(ucwords(str_replace('_', ' ', (string) ($order['orderType'] ?? 'delivery'))), ENT_QUOTES, 'UTF-8');
         $created = isset($order['createdAt']) ? date('d M Y, h:i A', (int) ((int) $order['createdAt'] / 1000)) : '';
+        $paymentLine = htmlspecialchars((string) ($order['paymentMethod'] ?? 'cod'), ENT_QUOTES, 'UTF-8')
+            . ' / ' . htmlspecialchars((string) ($order['paymentStatus'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $upiTxnId = trim((string) ($order['upiTxnId'] ?? ''));
+        if ($upiTxnId !== '') {
+            $paymentLine .= '<br><strong>UPI txn:</strong> ' . htmlspecialchars($upiTxnId, ENT_QUOTES, 'UTF-8');
+        }
+        $refundStatus = trim((string) ($order['refundStatus'] ?? ''));
+        if ($refundStatus !== '') {
+            $refundRef = trim((string) ($order['refundRef'] ?? ''));
+            $paymentLine .= '<br><strong>Refund:</strong> ' . htmlspecialchars($refundStatus, ENT_QUOTES, 'UTF-8')
+                . ($refundRef !== '' ? (' · ' . htmlspecialchars($refundRef, ENT_QUOTES, 'UTF-8')) : '');
+        }
         $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ' . htmlspecialchars($orderId) . '</title>
 <style>
 body{font-family:Arial,sans-serif;color:#111;margin:32px}
@@ -48,7 +60,7 @@ th,td{border-bottom:1px solid #eee;padding:8px;text-align:left}
 <p class="muted">Hot. Fresh. Fast.</p>
 <p><strong>Invoice:</strong> ' . htmlspecialchars($orderId) . '<br>
 <strong>Date:</strong> ' . htmlspecialchars($created) . '<br>
-<strong>Payment:</strong> ' . htmlspecialchars((string) ($order['paymentMethod'] ?? 'cod')) . ' / ' . htmlspecialchars((string) ($order['paymentStatus'] ?? '')) . '<br>
+<strong>Payment:</strong> ' . $paymentLine . '<br>
 <strong>Type:</strong> ' . $orderType . '</p>
 <p><strong>Receiver:</strong> ' . $receiverName . ($receiverPhone !== '' ? (' (' . $receiverPhone . ')') : '') . '<br>
 <strong>Address</strong><br>' . $address . '</p>

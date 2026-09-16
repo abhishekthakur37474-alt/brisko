@@ -117,6 +117,20 @@ if (!function_exists('brisko_config')) {
                 'return_url' => env_value('CASHFREE_RETURN_URL', ''),
                 'allowed_currencies' => env_list('CASHFREE_ALLOWED_CURRENCIES') ?: ['INR'],
             ],
+            // UPI Intent payments. The merchant VPA is a public payee address
+            // (not a secret) that the app builds the `upi://pay` intent from; it
+            // is mirrored here so the server can log/reconcile the destination.
+            'upi' => [
+                'merchant_vpa' => env_value('UPI_MERCHANT_VPA', ''),
+                'merchant_name' => env_value('UPI_MERCHANT_NAME', 'Brisko Pizza'),
+                // Optional server-side verifier. When set, the backend POSTs the
+                // UPI txn details to this URL and only flips the order to `paid`
+                // when the verifier returns {"verified": true}. When empty, orders
+                // stay pending until an admin reconciles them manually.
+                'verify_url' => env_value('UPI_VERIFY_URL', ''),
+                'verify_secret' => env_value('UPI_VERIFY_SECRET', ''),
+                'verify_timeout' => (int) env_value('UPI_VERIFY_TIMEOUT', '15'),
+            ],
             // Server-authoritative pricing. Must mirror the Flutter pricing so the
             // amount paid is always the amount the server computed from the catalog.
             'pricing' => [

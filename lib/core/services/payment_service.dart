@@ -31,17 +31,6 @@ class CodPaymentGateway implements PaymentGateway {
   }
 }
 
-class UpiIntentPaymentGateway implements PaymentGateway {
-  @override
-  Future<PaymentResult> pay({
-    required double amount,
-    required String orderId,
-    required String currency,
-  }) async {
-    return const PaymentResult(success: true, status: 'paid');
-  }
-}
-
 class MockPaymentGateway implements PaymentGateway {
   @override
   Future<PaymentResult> pay({
@@ -59,7 +48,6 @@ class MockPaymentGateway implements PaymentGateway {
 
 class PaymentService {
   PaymentGateway gatewayFor(String method) {
-    if (method == 'upi_intent') return UpiIntentPaymentGateway();
     if (method == 'online') return MockPaymentGateway();
     return CodPaymentGateway();
   }

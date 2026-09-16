@@ -366,7 +366,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             orderMode: loc.orderMode,
             receiverName: receiver,
             receiverPhone: receiverPhone,
-            paymentConfirmed: true,
+            upiTxnId: result.transactionId ?? '',
+            upiResponseCode: result.responseCode ?? '',
+            upiTransactionRef: transactionRef,
           );
       if (mounted) context.go('/order-confirm/$id');
     } on UpiIntentException catch (e) {

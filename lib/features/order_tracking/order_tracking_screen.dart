@@ -120,6 +120,58 @@ class OrderTrackingScreen extends ConsumerWidget {
                       )
                     : _StatusStepper(steps: steps, current: safeIndex),
               ),
+              if (order.isPaymentUnderReview) ...[
+                const SizedBox(height: 12),
+                AppCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.schedule_outlined, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('UPI payment under verification', style: TextStyle(fontWeight: FontWeight.w700)),
+                            SizedBox(height: 4),
+                            Text(
+                              'We are confirming your payment with the bank. Your order will proceed once verified.',
+                              style: TextStyle(color: AppColors.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (order.paymentStatus.toLowerCase() == 'refunded') ...[
+                const SizedBox(height: 12),
+                AppCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.currency_rupee, color: AppColors.success),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text('Your UPI payment has been refunded.', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (order.upiTxnId.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                AppCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.receipt_outlined, size: 18, color: AppColors.muted),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('UPI reference: ${order.upiTxnId}', style: const TextStyle(color: AppColors.muted)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               Text(addressHeading, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),

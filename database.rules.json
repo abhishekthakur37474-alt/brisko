@@ -1,0 +1,81 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "orders": {
+      "$orderId": {
+        ".read": "auth != null && data.child('userId').val() === auth.uid",
+        ".write": "auth != null && ((!data.exists() && newData.child('userId').val() === auth.uid && newData.child('paymentMethod').val() === 'cod' && newData.child('paymentStatus').val() === 'pending') || (!data.exists() && newData.child('userId').val() === auth.uid && newData.child('paymentMethod').val() === 'upi_intent' && newData.child('paymentStatus').val() === 'pending' && newData.child('paymentVerification').val() === 'pending') || (data.exists() && data.child('userId').val() === auth.uid && data.child('paymentStatus').val() === newData.child('paymentStatus').val() && data.child('paymentVerification').val() === newData.child('paymentVerification').val() && data.child('paidAt').val() === newData.child('paidAt').val() && data.child('paymentMethod').val() === newData.child('paymentMethod').val() && data.child('finalAmount').val() === newData.child('finalAmount').val()))"
+      }
+    },
+    "userOrders": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$orderId": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "outletOrders": {
+      "$outletId": {
+        ".read": "auth != null",
+        "$orderId": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "categories": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "products": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "coupons": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "outlets": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "loyaltyConfig": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "reviews": {
+      "$productId": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "supportTickets": {
+      ".read": "auth != null",
+      "$ticketId": {
+        ".write": "auth != null"
+      }
+    },
+    "pendingOrders": {
+      ".read": false,
+      ".write": false
+    },
+    "cashfreeWebhooks": {
+      ".read": false,
+      ".write": false
+    },
+    "adminAuth": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

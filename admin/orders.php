@@ -18,6 +18,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'status') {
             brisko_update_order_status($rtdb, $orderId, (string) ($_POST['status'] ?? ''));
             brisko_flash('success', 'Order status updated.');
+        } elseif ($action === 'upi_verify') {
+            brisko_review_upi_payment($rtdb, $orderId, true, (string) ($_POST['note'] ?? ''));
+            brisko_flash('success', 'UPI payment marked as received.');
+        } elseif ($action === 'upi_reject') {
+            brisko_review_upi_payment($rtdb, $orderId, false, (string) ($_POST['note'] ?? ''));
+            brisko_flash('success', 'UPI payment marked as not received.');
+        } elseif ($action === 'upi_refund') {
+            brisko_refund_upi_payment($rtdb, $orderId, (string) ($_POST['refundRef'] ?? ''));
+            brisko_flash('success', 'UPI order marked as refunded.');
         } elseif ($action === 'invoice') {
             $order = $rtdb->get('orders/' . $orderId);
             if (!is_array($order)) {
@@ -268,6 +277,26 @@ require __DIR__ . '/includes/header.php';
         if ($st === 'delivered' && strtolower($payMethod) === 'cod' && $payStatus !== 'paid') {
             $payStatus = 'paid';
         }
+        $isUpi = strtolower($payMethod) === 'upi_intent';
+        $upiTxnId = trim((string) ($detail['upiTxnId'] ?? ''));
+        $upiPayerVpa = trim((string) ($detail['upiPayerVpa'] ?? ''));
+        $upiRef = trim((string) ($detail['upiTransactionRef'] ?? ''));
+        $payVerification = trim((string) ($detail['paymentVerification'] ?? ''));
+        $verifyNote = trim((string) ($detail['verificationNote'] ?? ''));
+        $refundStatus = trim((string) ($detail['refundStatus'] ?? ''));
+        $refundRef = trim((string) ($detail['refundRef'] ?? ''));
+        $serverAmount = $detail['serverAmount'] ?? null;
+        $payStatusKey = strtolower($payStatus);
+        $canReviewUpi = $isUpi && $payStatusKey !== 'paid' && $payStatusKey !== 'refunded';
+        $canRefundUpi = $isUpi && $payStatusKey === 'paid';
+        $keepFilters = [
+            'filter_status' => $filter,
+            'filter_outlet' => $outletFilter,
+            'filter_q' => $searchQuery,
+        ];
+        if (trim((string) ($_GET['type'] ?? '')) !== '') {
+            $keepFilters['filter_type'] = $typeFilter;
+        }
         ?>
     <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="true">
       <div class="modal-dialog modal-dialog-scrollable modal-lg">
@@ -287,6 +316,13 @@ require __DIR__ . '/includes/header.php';
             <p class="mb-1"><strong>Receiver:</strong> <?= brisko_h($receiverName !== '' ? $receiverName : '-') ?><?= $receiverPhone !== '' ? (' · ' . brisko_h($receiverPhone)) : '' ?></p>
             <p class="mb-1"><strong>Outlet:</strong> <?= brisko_h($outletName) ?><?php if ($outletMapUrl !== ''): ?> — <a href="<?= brisko_h($outletMapUrl) ?>" target="_blank" rel="noopener">View on Google Maps</a><?php endif; ?></p>
             <p class="mb-1"><strong>Payment:</strong> <?= brisko_h(brisko_pretty_option($payMethod !== '' ? $payMethod : 'cod')) ?><?= $payStatus !== '' ? (' · ' . brisko_h(brisko_pretty_option($payStatus))) : '' ?></p>
+            <?php if ($isUpi): ?>
+                <p class="mb-1"><strong>UPI txn:</strong> <?= brisko_h($upiTxnId !== '' ? $upiTxnId : '-') ?><?= $upiPayerVpa !== '' ? (' · ' . brisko_h($upiPayerVpa)) : '' ?></p>
+                <?php if ($upiRef !== ''): ?><p class="mb-1"><strong>UPI ref:</strong> <?= brisko_h($upiRef) ?></p><?php endif; ?>
+                <p class="mb-1"><strong>Verification:</strong> <?= brisko_h($payVerification !== '' ? brisko_pretty_option($payVerification) : '-') ?><?= $serverAmount !== null ? (' · Server ' . brisko_h(brisko_money($serverAmount))) : '' ?></p>
+                <?php if ($verifyNote !== ''): ?><p class="mb-1 small text-danger"><strong>Note:</strong> <?= brisko_h($verifyNote) ?></p><?php endif; ?>
+                <?php if ($refundStatus !== ''): ?><p class="mb-1"><strong>Refund:</strong> <?= brisko_h(brisko_pretty_option($refundStatus)) ?><?= $refundRef !== '' ? (' · ' . brisko_h($refundRef)) : '' ?><?= !empty($detail['refundedAt']) ? (' · ' . brisko_h(brisko_dt($detail['refundedAt']))) : '' ?></p><?php endif; ?>
+            <?php endif; ?>
             <p class="mb-1"><strong>Address:</strong> <?= brisko_h((string) ($addr['fullAddress'] ?? $addr['address'] ?? '-')) ?></p>
             <p class="mb-3"><strong>Notes:</strong> <?= brisko_h((string) ($detail['orderNotes'] ?? '-')) ?></p>
             <h3 class="h6">Ordered items</h3>
@@ -356,6 +392,33 @@ require __DIR__ . '/includes/header.php';
                                     <?php if ($searchQuery !== ''): ?><input type="hidden" name="filter_q" value="<?= brisko_h($searchQuery) ?>"><?php endif; ?>
                     <button class="btn btn-outline-dark" type="submit">Generate invoice</button>
                 </form>
+                <?php if ($canReviewUpi): ?>
+                    <form method="post" class="d-flex flex-wrap gap-2 align-items-center">
+                        <input type="hidden" name="_csrf" value="<?= brisko_h(brisko_csrf_token()) ?>">
+                        <input type="hidden" name="action" value="upi_verify">
+                        <input type="hidden" name="orderId" value="<?= brisko_h($detailId) ?>">
+                        <?php foreach (array_filter($keepFilters) as $k => $v): ?><input type="hidden" name="<?= brisko_h((string) $k) ?>" value="<?= brisko_h((string) $v) ?>"><?php endforeach; ?>
+                        <input type="text" class="form-control form-control-sm" name="note" placeholder="UPI ref / note (optional)" style="max-width: 220px;">
+                        <button class="btn btn-success" type="submit" onclick="return confirm('Confirm this UPI payment was received?')">Mark UPI received</button>
+                    </form>
+                    <form method="post" onsubmit="return confirm('Mark this UPI payment as not received?')">
+                        <input type="hidden" name="_csrf" value="<?= brisko_h(brisko_csrf_token()) ?>">
+                        <input type="hidden" name="action" value="upi_reject">
+                        <input type="hidden" name="orderId" value="<?= brisko_h($detailId) ?>">
+                        <?php foreach (array_filter($keepFilters) as $k => $v): ?><input type="hidden" name="<?= brisko_h((string) $k) ?>" value="<?= brisko_h((string) $v) ?>"><?php endforeach; ?>
+                        <button class="btn btn-outline-warning" type="submit">Mark UPI not received</button>
+                    </form>
+                <?php endif; ?>
+                <?php if ($canRefundUpi): ?>
+                    <form method="post" class="d-flex flex-wrap gap-2 align-items-center" onsubmit="return confirm('Mark this paid UPI order as refunded?')">
+                        <input type="hidden" name="_csrf" value="<?= brisko_h(brisko_csrf_token()) ?>">
+                        <input type="hidden" name="action" value="upi_refund">
+                        <input type="hidden" name="orderId" value="<?= brisko_h($detailId) ?>">
+                        <?php foreach (array_filter($keepFilters) as $k => $v): ?><input type="hidden" name="<?= brisko_h((string) $k) ?>" value="<?= brisko_h((string) $v) ?>"><?php endforeach; ?>
+                        <input type="text" class="form-control form-control-sm" name="refundRef" placeholder="Refund ref / UTR" style="max-width: 220px;">
+                        <button class="btn btn-outline-secondary" type="submit">Mark refunded</button>
+                    </form>
+                <?php endif; ?>
             </div>
             <?php if (!empty($detail['invoiceUrl'])): ?>
                 <p class="mt-3 mb-0"><a href="<?= brisko_h((string) $detail['invoiceUrl']) ?>" target="_blank" rel="noopener">Open invoice</a></p>

@@ -50,6 +50,10 @@ class ApiConfig {
   static Uri resendOtp() => Uri.parse('$baseUrl/api/resend-otp.php');
   static Uri logout() => Uri.parse('$baseUrl/api/logout.php');
 
+  /// Server-side UPI Intent verification. Only the backend can flip an order to
+  /// `paid`; the app never writes a paid UPI order itself.
+  static Uri verifyUpiPayment() => Uri.parse('$baseUrl/api/upi/verify-payment.php');
+
   // --- Cashfree online payment endpoints (disabled, kept for reference) ------
   // static Uri createOnlineOrder() => Uri.parse('$baseUrl/api/cashfree/create-order.php');
   // static Uri verifyOnlinePayment(String orderId) => Uri.parse(

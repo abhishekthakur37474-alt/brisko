@@ -40,6 +40,20 @@ class OrderModel {
   final String receiverPhone;
   // How the customer gets the order: delivery / takeaway / dineIn.
   final OrderMode orderType;
+  // UPI Intent transaction details. Reported by the customer's UPI app and
+  // recorded so the payment can be reconciled against the bank statement.
+  final String upiTxnId;
+  final String upiResponseCode;
+  final String upiPayerVpa;
+  final String upiTransactionRef;
+  // Server-controlled payment review. The client only ever writes 'pending';
+  // only the backend/admin (Admin SDK, bypasses rules) may set 'verified'.
+  final String paymentVerification;
+  final int? paymentVerifiedAt;
+  // Manual refund tracking for UPI payments.
+  final String refundStatus;
+  final int? refundedAt;
+  final String refundRef;
 
   const OrderModel({
     required this.id,
@@ -66,6 +80,15 @@ class OrderModel {
     this.receiverName = '',
     this.receiverPhone = '',
     this.orderType = OrderMode.delivery,
+    this.upiTxnId = '',
+    this.upiResponseCode = '',
+    this.upiPayerVpa = '',
+    this.upiTransactionRef = '',
+    this.paymentVerification = 'not_required',
+    this.paymentVerifiedAt,
+    this.refundStatus = '',
+    this.refundedAt,
+    this.refundRef = '',
   });
 
   factory OrderModel.fromMap(String id, Map<dynamic, dynamic> map) {
@@ -135,6 +158,17 @@ class OrderModel {
           ? map['receiverPhone'] as String
           : addr.receiverPhone,
       orderType: _parseOrderType(map['orderType']),
+      upiTxnId: (map['upiTxnId'] ?? '') as String,
+      upiResponseCode: (map['upiResponseCode'] ?? '') as String,
+      upiPayerVpa: (map['upiPayerVpa'] ?? '') as String,
+      upiTransactionRef: (map['upiTransactionRef'] ?? '') as String,
+      paymentVerification: ((map['paymentVerification'] ?? '') as String).isNotEmpty
+          ? map['paymentVerification'] as String
+          : (paymentMethod.toLowerCase() == 'upi_intent' ? 'pending' : 'not_required'),
+      paymentVerifiedAt: (map['paymentVerifiedAt'] as num?)?.toInt(),
+      refundStatus: (map['refundStatus'] ?? '') as String,
+      refundedAt: (map['refundedAt'] as num?)?.toInt(),
+      refundRef: (map['refundRef'] ?? '') as String,
     );
   }
 
@@ -169,10 +203,25 @@ class OrderModel {
       'receiverName': receiverName,
       'receiverPhone': receiverPhone,
       'orderType': orderType.name,
+      'upiTxnId': upiTxnId,
+      'upiResponseCode': upiResponseCode,
+      'upiPayerVpa': upiPayerVpa,
+      'upiTransactionRef': upiTransactionRef,
+      'paymentVerification': paymentVerification,
+      'paymentVerifiedAt': paymentVerifiedAt,
+      'refundStatus': refundStatus,
+      'refundedAt': refundedAt,
+      'refundRef': refundRef,
     };
   }
 
   bool get canCancel => orderStatus == 'placed' || orderStatus == 'confirmed';
+
+  /// True when an online payment is still awaiting server/admin confirmation.
+  bool get isPaymentUnderReview =>
+      paymentMethod.toLowerCase() == 'upi_intent' &&
+      paymentStatus.toLowerCase() != 'paid' &&
+      paymentStatus.toLowerCase() != 'refunded';
 
   static OrderMode _parseOrderType(dynamic raw) {
     final s = (raw ?? '').toString().trim();
