@@ -1,15 +1,14 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:upi_intent/upi_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/services/upi_intent_service.dart';
+// import 'dart:typed_data';
+// import 'package:upi_intent/upi_intent.dart';
+// import '../../core/services/upi_intent_service.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/phone.dart';
@@ -25,6 +24,7 @@ import '../location/location_controller.dart';
 import '../location/store_closed_banner.dart';
 import '../location/store_status.dart';
 import '../orders/orders_controller.dart';
+import 'payment_screen.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -44,12 +44,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _receiverEdited = false;
   bool _phoneEdited = false;
 
-  // Cashfree integration (disabled, replaced by UPI Intent):
+  // Online payments now use a manual UPI/QR flow: the customer is taken to
+  // PaymentScreen, pays to the admin-configured QR/UPI ID, uploads a payment
+  // screenshot and submits the transaction id. An admin confirms the payment.
+  //
+  // Previous integrations (both disabled and replaced by the manual flow):
+  // Cashfree:
   // final _cashfree = CashfreeService();
   // final _cashfreeGateway = CFPaymentGatewayService();
   // String? _pendingOrderId;
-
-  final _upi = UpiIntentService();
+  // UPI Intent (deep link):
+  // final _upi = UpiIntentService();
 
   @override
   void initState() {
@@ -166,8 +171,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 const SizedBox(height: 10),
                 _PayOption(
                   icon: Icons.qr_code_scanner,
-                  title: 'UPI Payment',
-                  subtitle: 'Pay instantly using any UPI app',
+                  title: 'Online Payment',
+                  subtitle: 'Pay via UPI QR and upload the screenshot',
                   selected: _method == 'upi_intent',
                   onTap: () => setState(() => _method = 'upi_intent'),
                 ),
@@ -204,7 +209,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           top: false,
           minimum: const EdgeInsets.fromLTRB(16, 10, 16, 12),
           child: _PlaceOrderButton(
-            label: 'Place Order  •  ${rupees(price.finalAmount)}',
+            label: _method == 'upi_intent'
+                ? 'Continue  •  ${rupees(price.finalAmount)}'
+                : 'Place Order  •  ${rupees(price.finalAmount)}',
             loading: _loading,
             onPressed: canPlace
                 ? () => _placeOrder(
@@ -270,15 +277,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ));
 
     if (_method == 'upi_intent') {
-      await _payWithUpi(
-        loc: loc,
-        items: items,
-        address: deliveryOrOutletAddress,
-        outletId: outlet.id,
-        receiver: receiver,
-        receiverPhone: receiverPhone,
-        couponCode: couponCode,
-        price: price,
+      // Manual UPI/QR payment: hand everything over to the payment screen, which
+      // collects the screenshot + transaction id and only then creates the order.
+      context.push(
+        '/payment',
+        extra: OnlinePaymentArgs(
+          items: items,
+          address: deliveryOrOutletAddress,
+          outletId: outlet.id,
+          price: price,
+          couponCode: couponCode,
+          notes: _notes.text,
+          orderMode: loc.orderMode,
+          receiverName: receiver,
+          receiverPhone: receiverPhone,
+        ),
       );
       return;
     }

@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/firebase_service.dart';
 import '../../core/services/payment_service.dart';
-import '../../core/services/upi_verification_service.dart';
 import '../../core/utils/pricing.dart';
 import '../addresses/address_model.dart';
 import '../auth/auth_controller.dart';
@@ -46,7 +43,6 @@ class OrdersController {
   OrdersController(this.ref);
   final Ref ref;
   final _payments = PaymentService();
-  final _upiVerifier = UpiVerificationService();
 
   Future<String> placeOrder({
     required List<CartItem> items,
@@ -63,6 +59,7 @@ class OrdersController {
     String upiResponseCode = '',
     String upiPayerVpa = '',
     String upiTransactionRef = '',
+    String paymentProofUrl = '',
   }) async {
     final uid = FirebaseService.instance.auth.currentUser?.uid;
     if (uid == null) throw Exception('Login required');
@@ -129,6 +126,7 @@ class OrdersController {
       upiResponseCode: isUpi ? upiResponseCode : '',
       upiPayerVpa: isUpi ? upiPayerVpa : '',
       upiTransactionRef: isUpi ? upiTransactionRef : '',
+      paymentProofUrl: isUpi ? paymentProofUrl : '',
       paymentVerification: isUpi ? 'pending' : 'not_required',
     );
 
@@ -143,42 +141,10 @@ class OrdersController {
     ref.read(appliedCouponProvider.notifier).state = null;
     ref.read(redeemLoyaltyProvider.notifier).state = false;
 
-    // Ask the backend to verify the UPI payment. Best-effort: the order already
-    // exists as pending and an admin can reconcile it if verification is not
-    // configured or the server is unreachable.
-    if (isUpi) {
-      unawaited(_verifyUpiPayment(
-        orderId: orderId,
-        amount: price.finalAmount,
-        upiTxnId: upiTxnId,
-        upiResponseCode: upiResponseCode,
-        upiPayerVpa: upiPayerVpa,
-        transactionRef: upiTransactionRef,
-      ));
-    }
+    // Manual UPI/QR payments are confirmed by an admin from the Orders page.
+    // The order stays pending (and the customer sees a waiting message) until
+    // the admin approves or rejects the uploaded payment proof.
     return orderId;
-  }
-
-  Future<void> _verifyUpiPayment({
-    required String orderId,
-    required double amount,
-    required String upiTxnId,
-    required String upiResponseCode,
-    required String upiPayerVpa,
-    required String transactionRef,
-  }) async {
-    try {
-      await _upiVerifier.verify(
-        orderId: orderId,
-        amount: amount,
-        upiTxnId: upiTxnId,
-        upiResponseCode: upiResponseCode,
-        upiPayerVpa: upiPayerVpa,
-        transactionRef: transactionRef,
-      );
-    } catch (_) {
-      // Non-fatal: the order stays pending until it is verified or reconciled.
-    }
   }
 
   Future<void> cancel(String orderId) async {

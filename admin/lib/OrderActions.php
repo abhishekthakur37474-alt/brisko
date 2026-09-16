@@ -59,10 +59,12 @@ function brisko_update_order_status(RtdbClient $rtdb, string $orderId, string $s
 }
 
 /**
- * Admin review of a UPI Intent payment. Approving marks the order paid; marking
- * it as not received keeps it pending so the customer is not given a free pass.
- * This is the manual reconciliation path used when the backend has no automatic
- * UPI verifier configured.
+ * Admin review of a manual UPI/QR online payment.
+ *
+ * Approving marks the order paid AND confirms the order (so a customer who was
+ * waiting on the payment screen moves straight into the normal order flow).
+ * Rejecting keeps the payment pending, records the reason and cancels the order
+ * so it is not prepared against an unconfirmed payment.
  */
 function brisko_review_upi_payment(RtdbClient $rtdb, string $orderId, bool $approved, string $note = ''): array
 {
@@ -71,10 +73,12 @@ function brisko_review_upi_payment(RtdbClient $rtdb, string $orderId, bool $appr
         throw new RuntimeException('Order not found.');
     }
     if (strtolower((string) ($order['paymentMethod'] ?? '')) !== 'upi_intent') {
-        throw new RuntimeException('This order is not a UPI Intent payment.');
+        throw new RuntimeException('This order is not an online (UPI) payment.');
     }
 
     $now = brisko_now_ms();
+    $stamps = is_array($order['statusTimestamps'] ?? null) ? $order['statusTimestamps'] : [];
+    $current = (string) ($order['orderStatus'] ?? 'placed');
     $patch = ['updatedAt' => $now];
 
     if ($approved) {
@@ -86,13 +90,25 @@ function brisko_review_upi_payment(RtdbClient $rtdb, string $orderId, bool $appr
         if (trim($note) !== '') {
             $patch['verificationNote'] = trim($note);
         }
-        $message = 'Your UPI payment has been confirmed.';
+        // Approving the payment confirms the order; only nudge it forward when
+        // it is still waiting at 'placed' so later stages are never rewound.
+        if ($current === 'placed') {
+            $patch['orderStatus'] = 'confirmed';
+            $stamps['confirmed'] = $now;
+            $patch['statusTimestamps'] = $stamps;
+        }
+        $message = 'Your payment is confirmed and your order is being prepared.';
     } else {
         $patch['paymentStatus'] = 'pending';
         $patch['paymentVerification'] = 'rejected';
         $patch['verifiedBy'] = 'admin';
         $patch['verificationNote'] = trim($note) !== '' ? trim($note) : 'Payment not received.';
-        $message = 'We could not confirm your UPI payment.';
+        if ($current !== 'delivered' && $current !== 'cancelled') {
+            $patch['orderStatus'] = 'cancelled';
+            $stamps['cancelled'] = $now;
+            $patch['statusTimestamps'] = $stamps;
+        }
+        $message = 'We could not confirm your payment. Reason: ' . $patch['verificationNote'];
     }
 
     $rtdb->patch('orders/' . $orderId, $patch);

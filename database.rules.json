@@ -51,6 +51,10 @@
       ".read": "auth != null",
       ".write": "auth != null"
     },
+    "settings": {
+      ".read": "auth != null",
+      ".write": false
+    },
     "reviews": {
       "$productId": {
         ".read": "auth != null",

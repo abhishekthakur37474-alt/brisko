@@ -1,3 +1,11 @@
+// =============================================================================
+// DISABLED: The UPI Intent (deep-link) flow was replaced by the manual
+// UPI/QR payment screen (`features/checkout/payment_screen.dart`). The customer
+// now scans the admin-configured QR / pays to the UPI ID, uploads a payment
+// screenshot and submits the transaction id; an admin confirms it from the
+// Orders page. The code below is kept for reference only and is not compiled.
+// =============================================================================
+/*
 import 'package:upi_intent/upi_intent.dart';
 
 import '../constants/api.dart';
@@ -111,3 +119,4 @@ class UpiIntentService {
     );
   }
 }
+*/

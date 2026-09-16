@@ -15,8 +15,11 @@ class ApiConfig {
   );
 
   // ===========================================================================
-  // Online payments now use UPI Intent. The Cashfree integration was commented
-  // out in favour of UPI Intent and is kept below for reference only.
+  // Online payments now use a manual UPI/QR flow. The customer scans the QR /
+  // pays to the UPI ID configured by an admin, uploads a payment screenshot and
+  // submits the transaction id. An admin confirms the payment from the panel.
+  // The Cashfree / UPI Intent integrations were commented out and kept below
+  // for reference only.
   // ===========================================================================
   //
   // /// Cashfree environment used by the Flutter SDK to build the payment session.
@@ -28,18 +31,16 @@ class ApiConfig {
   //   defaultValue: 'SANDBOX',
   // );
 
-  /// Merchant UPI VPA (UPI ID) that receives the UPI Intent payment.
+  /// Merchant UPI VPA (UPI ID) that received UPI Intent payments.
   ///
-  /// This is a public payee address, not a secret. Override per environment:
-  ///   flutter run --dart-define=UPI_MERCHANT_VPA=manjusingh123manju@okicici
+  /// The active flow reads the payee UPI ID from the admin panel
+  /// (`settings/payment` in RTDB) instead, so this is kept for reference only.
   static const String upiMerchantVpa = String.fromEnvironment(
     'UPI_MERCHANT_VPA',
     defaultValue: 'manjusingh123manju@okicici',
   );
 
-  /// Payee display name shown in the UPI app while paying.
-  ///
-  ///   flutter run --dart-define=UPI_MERCHANT_NAME=Brisko%20Pizza
+  /// Payee display name shown while paying.
   static const String upiMerchantName = String.fromEnvironment(
     'UPI_MERCHANT_NAME',
     defaultValue: 'Brisko Pizza',
@@ -50,8 +51,10 @@ class ApiConfig {
   static Uri resendOtp() => Uri.parse('$baseUrl/api/resend-otp.php');
   static Uri logout() => Uri.parse('$baseUrl/api/logout.php');
 
-  /// Server-side UPI Intent verification. Only the backend can flip an order to
-  /// `paid`; the app never writes a paid UPI order itself.
+  /// Uploads the manual UPI/QR payment screenshot and returns a hosted URL.
+  static Uri uploadPaymentProof() => Uri.parse('$baseUrl/api/upload-payment-proof.php');
+
+  /// Server-side UPI Intent verification (disabled with the UPI Intent flow).
   static Uri verifyUpiPayment() => Uri.parse('$baseUrl/api/upi/verify-payment.php');
 
   // --- Cashfree online payment endpoints (disabled, kept for reference) ------

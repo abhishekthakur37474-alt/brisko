@@ -29,11 +29,10 @@ dependencies:
   hugeicons: ^1.1.7
   lottie: ^3.3.1
   webview_flutter: ^4.10.0
-  # Online payments now use UPI Intent instead of Cashfree.
+  # Online payments now use a manual UPI/QR flow instead of UPI Intent/Cashfree.
   # flutter_cashfree_pg_sdk: ^2.4.0+52
-  # upi_pay is abandoned (2+ yrs, unfixed empty-app-list bug on modern Android)
-  # -> replaced with upi_intent, which is actively maintained.
-  upi_intent: ^1.0.1
+  # upi_intent: ^1.0.1
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

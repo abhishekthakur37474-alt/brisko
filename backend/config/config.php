@@ -131,6 +131,14 @@ if (!function_exists('brisko_config')) {
                 'verify_secret' => env_value('UPI_VERIFY_SECRET', ''),
                 'verify_timeout' => (int) env_value('UPI_VERIFY_TIMEOUT', '15'),
             ],
+            // ImgBB image hosting. Used to store the payment screenshot the
+            // customer uploads on the manual UPI/QR payment screen. The API key
+            // is server-side only; the app posts the file to our own endpoint
+            // which uploads it here and returns the hosted URL.
+            'imgbb' => [
+                'api_key' => env_value('IMGBB_API_KEY', ''),
+                'timeout' => (int) env_value('IMGBB_TIMEOUT', '40'),
+            ],
             // Server-authoritative pricing. Must mirror the Flutter pricing so the
             // amount paid is always the amount the server computed from the catalog.
             'pricing' => [

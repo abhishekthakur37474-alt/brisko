@@ -46,6 +46,9 @@ class OrderModel {
   final String upiResponseCode;
   final String upiPayerVpa;
   final String upiTransactionRef;
+  // Hosted URL of the payment screenshot the customer uploaded on the manual
+  // UPI/QR payment screen. Reviewed by an admin before the order is confirmed.
+  final String paymentProofUrl;
   // Server-controlled payment review. The client only ever writes 'pending';
   // only the backend/admin (Admin SDK, bypasses rules) may set 'verified'.
   final String paymentVerification;
@@ -87,6 +90,7 @@ class OrderModel {
     this.upiResponseCode = '',
     this.upiPayerVpa = '',
     this.upiTransactionRef = '',
+    this.paymentProofUrl = '',
     this.paymentVerification = 'not_required',
     this.paymentVerifiedAt,
     this.refundStatus = '',
@@ -166,6 +170,7 @@ class OrderModel {
       upiResponseCode: (map['upiResponseCode'] ?? '') as String,
       upiPayerVpa: (map['upiPayerVpa'] ?? '') as String,
       upiTransactionRef: (map['upiTransactionRef'] ?? '') as String,
+      paymentProofUrl: (map['paymentProofUrl'] ?? '') as String,
       paymentVerification: ((map['paymentVerification'] ?? '') as String).isNotEmpty
           ? map['paymentVerification'] as String
           : (paymentMethod.toLowerCase() == 'upi_intent' ? 'pending' : 'not_required'),
@@ -212,6 +217,7 @@ class OrderModel {
       'upiResponseCode': upiResponseCode,
       'upiPayerVpa': upiPayerVpa,
       'upiTransactionRef': upiTransactionRef,
+      'paymentProofUrl': paymentProofUrl,
       'paymentVerification': paymentVerification,
       'paymentVerifiedAt': paymentVerifiedAt,
       'refundStatus': refundStatus,

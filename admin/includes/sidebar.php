@@ -10,6 +10,7 @@ $nav = [
     ['href' => 'categories.php', 'label' => 'Categories', 'icon' => 'bi-grid'],
     ['href' => 'outlets.php', 'label' => 'Outlets', 'icon' => 'bi-geo-alt'],
     ['href' => 'coupons.php', 'label' => 'Coupons', 'icon' => 'bi-ticket-perforated'],
+    ['href' => 'payment_settings.php', 'label' => 'Payment Settings', 'icon' => 'bi-qr-code'],
     ['href' => 'customers.php', 'label' => 'Customers', 'icon' => 'bi-people'],
     ['href' => 'tickets.php', 'label' => 'Support', 'icon' => 'bi-headset'],
     ['href' => 'notifications.php', 'label' => 'Notifications', 'icon' => 'bi-bell'],
