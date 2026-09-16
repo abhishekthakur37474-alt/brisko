@@ -1,4 +1,4 @@
-package com.example.brisko
+package com.briskopizza.app
 
 import io.flutter.embedding.android.FlutterActivity
 

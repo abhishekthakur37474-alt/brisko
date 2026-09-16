@@ -7,8 +7,10 @@ declare(strict_types=1);
  *
  * Called by Flutter when the user taps "Pay". The authenticated UID comes from
  * the Firebase ID token, never from the request body. The server recomputes the
- * amount from the RTDB catalog, creates the Cashfree order and stores a PENDING
- * record in Firebase Realtime Database.
+ * amount from the RTDB catalog, creates the Cashfree order and parks a PENDING
+ * record under `pendingOrders/{orderId}`. The order only becomes a real,
+ * customer-visible `orders/{orderId}` once the payment is confirmed as PAID, so
+ * abandoning the payment gateway can never place an order.
  */
 
 require_once __DIR__ . '/../../helpers/bootstrap.php';

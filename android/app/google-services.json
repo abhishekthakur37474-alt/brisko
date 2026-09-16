@@ -1,45 +1,27 @@
 {
   "project_info": {
-    "project_number": "916829487557",
-    "firebase_url": "https://brisko-20395-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "brisko-20395",
-    "storage_bucket": "brisko-20395.firebasestorage.app"
+    "project_number": "867560517197",
+    "firebase_url": "https://briskoapp-6ec77-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "briskoapp-6ec77",
+    "storage_bucket": "briskoapp-6ec77.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:916829487557:android:04f942abbfbca31ad44bac",
+        "mobilesdk_app_id": "1:867560517197:android:8b77bc113e6db7ce72b604",
         "android_client_info": {
-          "package_name": "com.example.brisko"
+          "package_name": "com.briskopizza.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "916829487557-fav2h05oj6ci2f32qqoer29q9lsl4bq3.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.brisko",
-            "certificate_hash": "e4993a06f2795d7b5a38441bdb7bea5872a33f0b"
-          }
-        },
-        {
-          "client_id": "916829487557-pv1shnboa40d8m5jdpid1ho1cdj6o0h2.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAkpVrGHAfOmC6jgVO5UVbTwjeIMEE3vYA"
+          "current_key": "AIzaSyDZpeE0F7DqmWno91zctJmOFcKrJEe5gM4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "916829487557-pv1shnboa40d8m5jdpid1ho1cdj6o0h2.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

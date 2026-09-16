@@ -1,5 +1,4 @@
-    <?php
-
+<?php
     declare(strict_types=1);
 
     /**
@@ -10,9 +9,11 @@
      *   - the merchant order id (generated here, never chosen by the client)
      *   - the payment status (only ever changed after a Cashfree confirmation)
      *
-     * Flutter sends the cart; it never sends a trusted amount. The order record is
-     * written to the same `orders/{orderId}` node the app already uses, so existing
-     * order screens keep working unchanged.
+     * Flutter sends the cart; it never sends a trusted amount. An online order is
+     * first parked under `pendingOrders/{orderId}` and only promoted to the
+     * `orders/{orderId}` node (with the `userOrders`/`outletOrders` indexes the app
+     * already uses) once Cashfree confirms the payment as PAID. This makes it
+     * impossible for abandoning the payment gateway to place an order.
      */
     class OrderService
     {
@@ -31,7 +32,22 @@
         public function getLocalOrder(string $orderId): ?array
         {
             $order = $this->fb->get('orders/' . $orderId);
-            return is_array($order) ? $order : null;
+            if (is_array($order)) {
+                return $order;
+            }
+
+            // Not promoted yet: an online order whose payment is still unresolved
+            // lives here until verification marks it PAID.
+            $pending = $this->fb->get('pendingOrders/' . $orderId);
+            return is_array($pending) ? $pending : null;
+        }
+
+        /**
+         * True once the order has been promoted to the visible `orders` node.
+         */
+        public function isPlacedOrder(array $order): bool
+        {
+            return ((string) ($order['orderStatus'] ?? '')) !== 'payment_pending';
         }
 
         /**
@@ -169,8 +185,9 @@
                 'loyaltyDiscount' => $loyalty['discount'],
                 'finalAmount' => $finalAmount,
                 'paymentMethod' => 'online',
-                'orderStatus' => 'placed',
-                'statusTimestamps' => ['placed' => $now],
+                // Not an order yet: only becomes 'placed' after payment is PAID.
+                'orderStatus' => 'payment_pending',
+                'statusTimestamps' => [],
                 'orderNotes' => $orderNotes,
                 'createdAt' => $now,
                 'updatedAt' => $now,
@@ -180,15 +197,14 @@
                 'orderType' => $orderMode,
             ];
 
-            $updates = [
-                'orders/' . $orderId => $order,
-                'userOrders/' . $uid . '/' . $orderId => true,
-            ];
-            if ($outletId !== '') {
-                $updates['outletOrders/' . $outletId . '/' . $orderId] = true;
-            }
-
-            $this->fb->ref('/')->update($updates);
+            // Park the order until Cashfree confirms the payment. It is intentionally
+            // NOT written to `orders` and NOT added to `userOrders`/`outletOrders`,
+            // so a customer who backs out of the payment gateway never sees a placed
+            // order (and neither does the outlet or admin). markOrderStatus() promotes
+            // it on the first confirmed PAID status.
+            $this->fb->ref('/')->update([
+                'pendingOrders/' . $orderId => $order,
+            ]);
 
             return [
                 'order_id' => $orderId,
@@ -275,6 +291,7 @@
         public function markOrderStatus(string $orderId, string $paymentStatus, string $cfOrderStatus, array $order): array
         {
             $now = (int) round(microtime(true) * 1000);
+            $isPending = !$this->isPlacedOrder($order);
 
             $updates = [
                 'paymentStatus' => $paymentStatus,
@@ -286,7 +303,41 @@
                 $updates['paidAt'] = $now;
             }
 
-            $this->fb->ref('orders/' . $orderId)->update($updates);
+            // Promote a parked online order to a real, visible order the first time
+            // the payment is confirmed as PAID. Until this moment the order has no
+            // `orders` record and no user/outlet index entry.
+            if ($paymentStatus === 'PAID' && $isPending) {
+                $placed = $order;
+                $placed['paymentStatus'] = 'PAID';
+                $placed['cashfreeOrderStatus'] = $cfOrderStatus;
+                $placed['paidAt'] = $updates['paidAt'] ?? ($order['paidAt'] ?? $now);
+                $placed['orderStatus'] = 'placed';
+                $placed['updatedAt'] = $now;
+                $timestamps = is_array($order['statusTimestamps'] ?? null) ? $order['statusTimestamps'] : [];
+                $timestamps['placed'] = $now;
+                $placed['statusTimestamps'] = $timestamps;
+
+                $uid = (string) ($order['userId'] ?? '');
+                $outletId = trim((string) ($order['outletId'] ?? ''));
+
+                $promote = [
+                    'orders/' . $orderId => $placed,
+                    'pendingOrders/' . $orderId => null,
+                ];
+                if ($uid !== '') {
+                    $promote['userOrders/' . $uid . '/' . $orderId] = true;
+                }
+                if ($outletId !== '') {
+                    $promote['outletOrders/' . $outletId . '/' . $orderId] = true;
+                }
+
+                $this->fb->ref('/')->update($promote);
+            } elseif ($isPending) {
+                // Still unpaid: keep the fields in sync on the parked record only.
+                $this->fb->ref('pendingOrders/' . $orderId)->update($updates);
+            } else {
+                $this->fb->ref('orders/' . $orderId)->update($updates);
+            }
 
             // Track per-user coupon usage once, keyed by order id so repeated
             // webhooks / verifications can never double count.

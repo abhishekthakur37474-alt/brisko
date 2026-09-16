@@ -23,10 +23,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -50,22 +47,31 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCZ7NJHlPNuRLFpDHXxcuJsx_DwI9aRN-I',
-    appId: '1:916829487557:web:2fb0db3c041a32ccd44bac',
-    messagingSenderId: '916829487557',
-    projectId: 'brisko-20395',
-    authDomain: 'brisko-20395.firebaseapp.com',
-    databaseURL: 'https://brisko-20395-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'brisko-20395.firebasestorage.app',
-    measurementId: 'G-CK7JYLZMBG',
+    apiKey: 'AIzaSyDi-0uJU_5ye61yB5hu-uziEsWMKbQyPgs',
+    appId: '1:867560517197:web:269128931f75dd7972b604',
+    messagingSenderId: '867560517197',
+    projectId: 'briskoapp-6ec77',
+    authDomain: 'briskoapp-6ec77.firebaseapp.com',
+    databaseURL: 'https://briskoapp-6ec77-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'briskoapp-6ec77.firebasestorage.app',
+    measurementId: 'G-6N4F1LJRVE',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAkpVrGHAfOmC6jgVO5UVbTwjeIMEE3vYA',
-    appId: '1:916829487557:android:04f942abbfbca31ad44bac',
-    messagingSenderId: '916829487557',
-    projectId: 'brisko-20395',
-    databaseURL: 'https://brisko-20395-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'brisko-20395.firebasestorage.app',
+    apiKey: 'AIzaSyDZpeE0F7DqmWno91zctJmOFcKrJEe5gM4',
+    appId: '1:867560517197:android:8b77bc113e6db7ce72b604',
+    messagingSenderId: '867560517197',
+    projectId: 'briskoapp-6ec77',
+    databaseURL: 'https://briskoapp-6ec77-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'briskoapp-6ec77.firebasestorage.app',
+  );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBi8CzK3KM_eCzSO1CqeHNqEk0Kg8ZOK44',
+    appId: '1:867560517197:ios:5adeca287178f77b72b604',
+    messagingSenderId: '867560517197',
+    projectId: 'briskoapp-6ec77',
+    databaseURL: 'https://briskoapp-6ec77-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'briskoapp-6ec77.firebasestorage.app',
+    iosBundleId: 'com.briskopizza.app',
   );
 }

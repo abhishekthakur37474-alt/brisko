@@ -22,7 +22,7 @@ class FcmClient
         if (!$access) {
             return 0;
         }
-        $project = (string) ($this->config['fcm_project_id'] ?? 'brisko-20395');
+        $project = (string) ($this->config['fcm_project_id'] ?? 'briskoapp-6ec77');
         $sent = 0;
         foreach ($tokens as $token) {
             $payload = [
