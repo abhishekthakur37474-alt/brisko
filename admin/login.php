@@ -77,6 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button class="btn btn-primary w-100" type="submit">Sign in</button>
         </form>
+        <p class="text-center mt-3 mb-0">
+            <a href="reset_admin.php" class="link-danger">Reset admin</a>
+        </p>
     </div>
 </div>
 </body>

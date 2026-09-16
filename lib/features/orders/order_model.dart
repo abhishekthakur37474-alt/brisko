@@ -50,8 +50,11 @@ class OrderModel {
   // only the backend/admin (Admin SDK, bypasses rules) may set 'verified'.
   final String paymentVerification;
   final int? paymentVerifiedAt;
-  // Manual refund tracking for UPI payments.
+  // Manual refund tracking for UPI payments. `refundStatus` is 'requested'
+  // when the customer cancels a paid UPI order and 'refunded' once an admin
+  // has processed it.
   final String refundStatus;
+  final int? refundRequestedAt;
   final int? refundedAt;
   final String refundRef;
 
@@ -87,6 +90,7 @@ class OrderModel {
     this.paymentVerification = 'not_required',
     this.paymentVerifiedAt,
     this.refundStatus = '',
+    this.refundRequestedAt,
     this.refundedAt,
     this.refundRef = '',
   });
@@ -167,6 +171,7 @@ class OrderModel {
           : (paymentMethod.toLowerCase() == 'upi_intent' ? 'pending' : 'not_required'),
       paymentVerifiedAt: (map['paymentVerifiedAt'] as num?)?.toInt(),
       refundStatus: (map['refundStatus'] ?? '') as String,
+      refundRequestedAt: (map['refundRequestedAt'] as num?)?.toInt(),
       refundedAt: (map['refundedAt'] as num?)?.toInt(),
       refundRef: (map['refundRef'] ?? '') as String,
     );
@@ -210,12 +215,20 @@ class OrderModel {
       'paymentVerification': paymentVerification,
       'paymentVerifiedAt': paymentVerifiedAt,
       'refundStatus': refundStatus,
+      'refundRequestedAt': refundRequestedAt,
       'refundedAt': refundedAt,
       'refundRef': refundRef,
     };
   }
 
   bool get canCancel => orderStatus == 'placed' || orderStatus == 'confirmed';
+
+  /// A refund the customer is owed but that has not been processed yet.
+  bool get isRefundPending =>
+      refundStatus.toLowerCase() == 'requested' &&
+      paymentStatus.toLowerCase() != 'refunded';
+
+  bool get isRefunded => paymentStatus.toLowerCase() == 'refunded';
 
   /// True when an online payment is still awaiting server/admin confirmation.
   bool get isPaymentUnderReview =>

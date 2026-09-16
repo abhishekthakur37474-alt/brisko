@@ -30,11 +30,11 @@ class ApiConfig {
 
   /// Merchant UPI VPA (UPI ID) that receives the UPI Intent payment.
   ///
-  /// This is a public payee address, not a secret. Set it per environment:
-  ///   flutter run --dart-define=UPI_MERCHANT_VPA=brisko@ybl
+  /// This is a public payee address, not a secret. Override per environment:
+  ///   flutter run --dart-define=UPI_MERCHANT_VPA=manjusingh123manju@okicici
   static const String upiMerchantVpa = String.fromEnvironment(
     'UPI_MERCHANT_VPA',
-    defaultValue: 'brisko@upi',
+    defaultValue: 'manjusingh123manju@okicici',
   );
 
   /// Payee display name shown in the UPI app while paying.

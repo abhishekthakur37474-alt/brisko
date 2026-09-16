@@ -42,7 +42,7 @@ class PoliciesScreen extends StatelessWidget {
                 Text('Terms & Conditions', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 const Text(
-                  'Orders are subject to outlet availability and service area. Prices include GST as shown at checkout. Cash on Delivery is available in v1.',
+                  'Orders are subject to outlet availability and service area. Prices include GST as shown at checkout. Payment can be made by UPI or Cash on Delivery.',
                   style: TextStyle(color: AppColors.muted, height: 1.5),
                 ),
               ],
@@ -56,7 +56,7 @@ class PoliciesScreen extends StatelessWidget {
                 Text('Refund & Cancellation', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 const Text(
-                  'You may cancel while an order is Placed or Confirmed. After preparation starts, cancellation is not available. COD refunds are not applicable. Online payment refunds will follow gateway policy once enabled.',
+                  'You may cancel while an order is Placed or Confirmed. After preparation starts, cancellation is not available. COD orders need no refund. If you already paid by UPI, the amount is refunded to the original UPI account within 5-7 working days after the cancellation is approved.',
                   style: TextStyle(color: AppColors.muted, height: 1.5),
                 ),
               ],

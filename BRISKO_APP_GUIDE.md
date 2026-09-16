@@ -180,14 +180,26 @@ Seeded coupons:
 
 - Delivery address (switch from saved list)
 - Loyalty redeem toggle (needs min points, default 50)
-- Payment: **Cash on Delivery** (live) / **Online** (coming soon)
+- Payment: **Cash on Delivery** (live) / **UPI Intent** (live, Android)
 - Optional order notes
 - Place Order writes to Firebase:
   - `orders/{orderId}`
   - `userOrders/{uid}/{orderId}`
   - `outletOrders/{outletId}/{orderId}`
 - Cart is cleared, coupon and loyalty toggle reset
-- Online payment currently returns “coming soon” and does not place the order
+
+UPI Intent flow (Android only):
+
+- The customer's UPI app is opened with a `upi://pay` intent built from
+  `UPI_MERCHANT_VPA` / `UPI_MERCHANT_NAME` (see section 12).
+- The order is created only after the UPI app reports success, and always with
+  `paymentStatus: pending`. The client can never write a `paid` order
+  (`database.rules.json` blocks it).
+- `POST /api/upi/verify-payment.php` recomputes the payable amount from the RTDB
+  catalog, records the UPI txn id / reference, and flips the order to `paid` only
+  when the configured verifier (`UPI_VERIFY_URL`) confirms it. With no verifier
+  configured the order stays pending for admin reconciliation.
+- iOS cannot return the UPI result, so the UPI option is Android-only.
 
 Order id format: `ORD{timestamp}`
 
@@ -219,6 +231,9 @@ Also shows:
 - Delivery address
 - Item list + invoice link (opens when `invoiceUrl` exists)
 - **Cancel order** only while `placed` or `confirmed`
+- Cancelling a **paid UPI order** raises a refund request. The app shows
+  "Refund requested" and, once the admin processes it, the refund reference
+  (`refundRef` / UTR) from the original bank statement.
 - **Reorder** copies items into cart and goes to `/cart`
 - **Rate & review** after delivered (reviews first product with a valid `productId`)
 
@@ -284,8 +299,8 @@ Lists active coupons with code, description, min order, **Copy** to clipboard.
 ### 4.20 Policies
 
 - Privacy Policy
-- Terms & Conditions
-- Refund & Cancellation (cancel only while Placed/Confirmed)
+- Terms & Conditions (UPI or Cash on Delivery)
+- Refund & Cancellation (cancel only while Placed/Confirmed; a paid UPI order is refunded to the original account within 5-7 working days)
 
 ---
 
@@ -580,8 +595,9 @@ If catalog is empty on first run, `SeedService.seedIfEmpty()` writes demo outlet
 | GST | 5% |
 | Delivery fee | Rs 40 |
 | Free delivery | Subtotal >= Rs 499 |
-| Supported payment v1 | Cash on Delivery |
+| Supported payment v1 | UPI Intent (Android) + Cash on Delivery |
 | Cancel window | `placed` or `confirmed` only |
+| UPI refund | Original account, 5-7 working days after cancellation |
 | Loyalty earn | 0.05 pt / rupee |
 | Loyalty redeem | min 50, max 200 / order, 1 pt = Rs 1 |
 | Currency | INR |
@@ -603,6 +619,44 @@ If catalog is empty on first run, `SeedService.seedIfEmpty()` writes demo outlet
 10. **Orders** — history
 11. **Tracking** — live steps, cancel, reorder, review, invoice
 12. **Profile hub** — addresses, wishlist, loyalty, offers, support, policies
+
+---
+
+## 12. Configuration and deployment
+
+### Realtime Database rules
+
+`firebase.json` points at `database.rules.json`, which is the deployable rules
+file (the `orders` node blocks any client write that would mark a UPI order
+`paid`).
+
+```bash
+# Deploy only the Realtime Database rules
+firebase deploy --only database
+```
+
+`firebase-database-rules-fragment.json` is only an older extract of the `orders`
+sub-tree and is NOT deployed. Edit `database.rules.json` for rule changes.
+
+### UPI merchant VPA (required for UPI)
+
+The merchant payee address is a public value baked in at build time. Without it
+the app falls back to the placeholder `brisko@upi`, which `UpiIntentService`
+treats as "not configured" and UPI is disabled.
+
+```bash
+# Build the app with the real merchant UPI ID
+flutter build apk --dart-define=UPI_MERCHANT_VPA=brisko@ybl --dart-define=UPI_MERCHANT_NAME=Brisko%20Pizza
+```
+
+Set the same `UPI_MERCHANT_VPA` on the PHP backend (see
+`backend/config/.env.example`) so the server can log/reconcile the destination.
+
+### Server-side UPI verification
+
+`UPI_VERIFY_URL` (optional) lets the backend confirm a transaction before it
+marks an order `paid`. When it is empty, orders stay `pending` and an admin
+reconciles them in the admin panel (Orders -> Mark UPI received / Mark refunded).
 
 ---
 

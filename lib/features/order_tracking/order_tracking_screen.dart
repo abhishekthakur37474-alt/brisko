@@ -144,15 +144,47 @@ class OrderTrackingScreen extends ConsumerWidget {
                   ),
                 ),
               ],
-              if (order.paymentStatus.toLowerCase() == 'refunded') ...[
+              if (order.isRefunded) ...[
                 const SizedBox(height: 12),
                 AppCard(
                   child: Row(
                     children: [
                       const Icon(Icons.currency_rupee, color: AppColors.success),
                       const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Your UPI payment has been refunded.', style: TextStyle(fontWeight: FontWeight.w600)),
+                            if (order.refundRef.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text('Refund reference: ${order.refundRef}', style: const TextStyle(color: AppColors.muted)),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (order.isRefundPending) ...[
+                const SizedBox(height: 12),
+                AppCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.currency_rupee, color: AppColors.primary),
+                      const SizedBox(width: 10),
                       const Expanded(
-                        child: Text('Your UPI payment has been refunded.', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Refund requested', style: TextStyle(fontWeight: FontWeight.w700)),
+                            SizedBox(height: 4),
+                            Text(
+                              'Your UPI payment will be refunded to the original account within 5-7 working days.',
+                              style: TextStyle(color: AppColors.muted),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -215,7 +247,11 @@ class OrderTrackingScreen extends ConsumerWidget {
                       context: context,
                       builder: (c) => AlertDialog(
                         title: const Text('Cancel order?'),
-                        content: const Text('You can cancel only while the order is placed or confirmed.'),
+                        content: Text(
+                          order.paymentStatus.toLowerCase() == 'paid'
+                              ? 'You can cancel only while the order is placed or confirmed. Your UPI payment will be refunded to the original account.'
+                              : 'You can cancel only while the order is placed or confirmed.',
+                        ),
                         actions: [
                           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep')),
                           TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Cancel order')),

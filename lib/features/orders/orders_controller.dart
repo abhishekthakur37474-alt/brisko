@@ -191,10 +191,20 @@ class OrdersController {
       throw Exception('This order can no longer be cancelled.');
     }
     final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseService.instance.ref('orders/$orderId').update({
+    final patch = <String, dynamic>{
       'orderStatus': 'cancelled',
       'updatedAt': now,
       'statusTimestamps/cancelled': now,
-    });
+    };
+    // A paid UPI order cannot be silently kept: flag it so the admin refunds the
+    // customer. The client can only raise the request; only the backend/admin
+    // may mark it 'refunded'.
+    final isPaidUpi = order.paymentMethod.toLowerCase() == 'upi_intent' &&
+        order.paymentStatus.toLowerCase() == 'paid';
+    if (isPaidUpi) {
+      patch['refundStatus'] = 'requested';
+      patch['refundRequestedAt'] = now;
+    }
+    await FirebaseService.instance.ref('orders/$orderId').update(patch);
   }
 }

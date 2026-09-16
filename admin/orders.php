@@ -285,6 +285,7 @@ require __DIR__ . '/includes/header.php';
         $verifyNote = trim((string) ($detail['verificationNote'] ?? ''));
         $refundStatus = trim((string) ($detail['refundStatus'] ?? ''));
         $refundRef = trim((string) ($detail['refundRef'] ?? ''));
+        $refundRequestedAt = $detail['refundRequestedAt'] ?? null;
         $serverAmount = $detail['serverAmount'] ?? null;
         $payStatusKey = strtolower($payStatus);
         $canReviewUpi = $isUpi && $payStatusKey !== 'paid' && $payStatusKey !== 'refunded';
@@ -321,7 +322,7 @@ require __DIR__ . '/includes/header.php';
                 <?php if ($upiRef !== ''): ?><p class="mb-1"><strong>UPI ref:</strong> <?= brisko_h($upiRef) ?></p><?php endif; ?>
                 <p class="mb-1"><strong>Verification:</strong> <?= brisko_h($payVerification !== '' ? brisko_pretty_option($payVerification) : '-') ?><?= $serverAmount !== null ? (' · Server ' . brisko_h(brisko_money($serverAmount))) : '' ?></p>
                 <?php if ($verifyNote !== ''): ?><p class="mb-1 small text-danger"><strong>Note:</strong> <?= brisko_h($verifyNote) ?></p><?php endif; ?>
-                <?php if ($refundStatus !== ''): ?><p class="mb-1"><strong>Refund:</strong> <?= brisko_h(brisko_pretty_option($refundStatus)) ?><?= $refundRef !== '' ? (' · ' . brisko_h($refundRef)) : '' ?><?= !empty($detail['refundedAt']) ? (' · ' . brisko_h(brisko_dt($detail['refundedAt']))) : '' ?></p><?php endif; ?>
+                <?php if ($refundStatus !== ''): ?><p class="mb-1"><strong>Refund:</strong> <?= brisko_h(brisko_pretty_option($refundStatus)) ?><?= $refundRef !== '' ? (' · ' . brisko_h($refundRef)) : '' ?><?= !empty($detail['refundedAt']) ? (' · ' . brisko_h(brisko_dt($detail['refundedAt']))) : (!empty($refundRequestedAt) ? (' · requested ' . brisko_h(brisko_dt($refundRequestedAt))) : '') ?></p><?php endif; ?>
             <?php endif; ?>
             <p class="mb-1"><strong>Address:</strong> <?= brisko_h((string) ($addr['fullAddress'] ?? $addr['address'] ?? '-')) ?></p>
             <p class="mb-3"><strong>Notes:</strong> <?= brisko_h((string) ($detail['orderNotes'] ?? '-')) ?></p>

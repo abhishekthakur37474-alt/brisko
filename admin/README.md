@@ -7,8 +7,9 @@ Server-rendered admin panel for the Brisko Pizza Flutter app. It reads and write
 1. Copy `config/firebase-service-account.json.example` to `config/firebase-service-account.json` and paste your Firebase service account (needed for FCM and locked RTDB rules).
 2. Product and category images upload via ImgBB (`imgbb_api_key` in `config/config.php`).
 3. Open `register.php` once to create the first admin. After that, registration is closed.
-4. Sign in at `login.php`.
+4. Sign in at `login.php`. The entry point is automatic: with no admin it opens `register.php`, and with an admin present it opens `login.php`.
 5. Password reset is `reset_credentials.php` (direct URL only, not linked anywhere).
+6. Full admin reset is linked from the login page as `reset_admin.php`. It asks for the Firebase project ID, the database URL and typing `RESET`; on success every admin is deleted and the first-run registration page opens again.
 6. To let a legacy gateway call `api/payment_webhook.php`, set `BRISKO_PAYMENT_WEBHOOK_SECRET` and send it as the `X-Webhook-Secret` header. Without it the endpoint rejects every request. Cashfree uses the signed `backend/api/cashfree/webhook.php` instead.
 
 ## Local preview

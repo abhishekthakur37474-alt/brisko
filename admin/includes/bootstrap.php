@@ -87,6 +87,38 @@ function brisko_admin_entry_redirect(): never
     brisko_redirect(brisko_has_admin() ? 'login.php' : 'register.php');
 }
 
+/**
+ * Firebase project ID this panel talks to. Prefers the explicit FCM project
+ * ID and falls back to parsing the RTDB host name.
+ */
+function brisko_project_id(): string
+{
+    $cfg = brisko_config();
+    $id = trim((string) ($cfg['fcm_project_id'] ?? ''));
+    if ($id !== '') {
+        return $id;
+    }
+    $host = (string) (parse_url((string) ($cfg['rtdb_base_url'] ?? ''), PHP_URL_HOST) ?? '');
+    if (preg_match('/^(.+?)(?:-default-rtdb)?\.firebaseio\.com$/', $host, $m)) {
+        return $m[1];
+    }
+    if (preg_match('/^(.+?)-default-rtdb\./', $host, $m)) {
+        return $m[1];
+    }
+    return $host;
+}
+
+/**
+ * Normalizes a Realtime Database URL for comparison: drops the scheme, any
+ * trailing slash and casing so small typos in the scheme do not matter.
+ */
+function brisko_normalize_rtdb_url(string $url): string
+{
+    $url = trim($url);
+    $url = (string) preg_replace('#^https?://#i', '', $url);
+    return strtolower(rtrim($url, '/'));
+}
+
 function brisko_map(?array $node): array
 {
     if (!is_array($node) || $node === []) {

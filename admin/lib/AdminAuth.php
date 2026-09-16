@@ -31,6 +31,22 @@ class AdminAuth
         return $this->all() !== [];
     }
 
+    /**
+     * Deletes every admin account.
+     *
+     * Used by the "reset admin" flow: once the node is empty the first-run
+     * registration page becomes available again. Returns the number of accounts
+     * that were removed.
+     */
+    public function deleteAll(): int
+    {
+        $count = count($this->all());
+        if ($count > 0) {
+            $this->rtdb->delete('adminAuth');
+        }
+        return $count;
+    }
+
     public function findByUsername(string $username): ?array
     {
         $username = mb_strtolower(trim($username));
