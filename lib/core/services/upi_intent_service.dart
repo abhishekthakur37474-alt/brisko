@@ -1,4 +1,4 @@
-import 'package:upi_pay/upi_pay.dart';
+import 'package:upi_intent/upi_intent.dart';
 
 import '../constants/api.dart';
 
@@ -39,10 +39,12 @@ class UpiIntentResult {
 /// app returns the transaction result, which lets checkout place the order only
 /// after a confirmed payment. On iOS the UPI app cannot report the result, so
 /// the payment is treated as unconfirmed and the order is not placed.
+///
+/// Built on `upi_intent`, not `upi_pay` (abandoned; `getInstalledUpiApplications`
+/// unreliably returns an empty list on modern Android versions even with the
+/// manifest `<queries>` block in place).
 class UpiIntentService {
-  UpiIntentService({UpiPay? upiPay}) : _upiPay = upiPay ?? UpiPay();
-
-  final UpiPay _upiPay;
+  UpiIntentService();
 
   String get merchantVpa => ApiConfig.upiMerchantVpa;
   String get merchantName => ApiConfig.upiMerchantName;
@@ -51,9 +53,9 @@ class UpiIntentService {
       merchantVpa.contains('@') && merchantVpa.toLowerCase() != 'brisko@upi';
 
   /// UPI apps installed on this device and able to process a payment.
-  Future<List<ApplicationMeta>> installedApps() async {
+  Future<List<UpiApp>> installedApps() async {
     try {
-      return await _upiPay.getInstalledUpiApplications();
+      return await UpiIntent.getInstalledApps();
     } catch (_) {
       throw const UpiIntentException('Unable to find UPI apps on this device.');
     }
@@ -64,7 +66,7 @@ class UpiIntentService {
   /// [transactionRef] is echoed back by the UPI app so the payment can be tied
   /// back to this checkout attempt.
   Future<UpiIntentResult> pay({
-    required UpiApplication app,
+    required UpiApp app,
     required double amount,
     required String transactionRef,
     String? note,
@@ -78,37 +80,34 @@ class UpiIntentService {
       throw const UpiIntentException('Invalid payment amount.');
     }
 
-    UpiTransactionResponse response;
+    UpiResponse? response;
     try {
-      response = await _upiPay.initiateTransaction(
+      response = await UpiIntent.payWithApp(
         app: app,
-        receiverUpiAddress: merchantVpa,
-        receiverName: merchantName,
-        transactionRef: transactionRef,
-        amount: amount.toStringAsFixed(2),
-        transactionNote: note ?? 'Brisko order',
+        payment: UpiPayment(
+          payeeVpa: merchantVpa,
+          payeeName: merchantName,
+          amount: amount,
+          transactionNote: note ?? 'Brisko order',
+          transactionRefId: transactionRef,
+        ),
       );
     } catch (_) {
       throw const UpiIntentException('Unable to open the UPI app. Please try again.');
     }
 
-    final status = response.status;
-    // Android-only fields: reading them on iOS throws UnsupportedError.
-    String? txnId;
-    String? responseCode;
-    try {
-      txnId = response.txnId;
-      responseCode = response.responseCode;
-    } catch (_) {
-      txnId = null;
-      responseCode = null;
+    // A null response means the user backed out of the UPI app / picker
+    // without a result being reported. Treat as unconfirmed, same as the old
+    // "unknown" status, so the order is never placed on ambiguous outcomes.
+    if (response == null) {
+      return const UpiIntentResult(paid: false, status: UpiTransactionStatus.unknown);
     }
 
     return UpiIntentResult(
-      paid: status == UpiTransactionStatus.success,
-      transactionId: txnId,
-      responseCode: responseCode,
-      status: status,
+      paid: response.isSuccess,
+      transactionId: response.transactionId,
+      responseCode: response.responseCode,
+      status: response.status,
     );
   }
 }

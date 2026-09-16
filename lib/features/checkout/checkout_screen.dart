@@ -1,9 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:upi_pay/upi_pay.dart';
+import 'package:upi_intent/upi_intent.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -337,7 +339,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       final transactionRef = 'BRISKO${DateTime.now().millisecondsSinceEpoch}';
       final result = await _upi.pay(
-        app: selected.upiApplication,
+        app: selected,
         amount: price.finalAmount,
         transactionRef: transactionRef,
         note: 'Brisko order $transactionRef',
@@ -380,8 +382,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
-  Future<ApplicationMeta?> _chooseUpiApp(List<ApplicationMeta> apps, double amount) {
-    return showModalBottomSheet<ApplicationMeta>(
+  Future<UpiApp?> _chooseUpiApp(List<UpiApp> apps, double amount) {
+    return showModalBottomSheet<UpiApp>(
       context: context,
       backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
@@ -420,9 +422,18 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     itemBuilder: (context, index) {
                       final app = apps[index];
                       return ListTile(
-                        leading: app.iconImage(28),
+                        leading: app.icon != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.memory(
+                                  Uint8List.fromList(app.icon!),
+                                  width: 28,
+                                  height: 28,
+                                ),
+                              )
+                            : const Icon(Icons.account_balance_wallet_outlined, size: 28),
                         title: Text(
-                          app.upiApplication.getAppName(),
+                          app.name,
                           style: GoogleFonts.inter(fontSize: 15, color: AppColors.text),
                         ),
                         onTap: () => Navigator.of(sheetContext).pop(app),

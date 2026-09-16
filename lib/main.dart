@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
-import 'core/services/seed_service.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -18,6 +17,5 @@ Future<void> main() async {
   try {
     FirebaseDatabase.instance.setPersistenceEnabled(true);
   } catch (_) {}
-  SeedService().seedIfEmpty().then((_) {}, onError: (_) {});
   runApp(const ProviderScope(child: BriskoApp()));
 }
