@@ -13,6 +13,7 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/otp_screen.dart';
 import 'features/cart/cart_screen.dart';
 import 'features/checkout/checkout_screen.dart';
+import 'features/checkout/payment_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/home/shell_screen.dart';
 import 'features/location/location_controller.dart';
@@ -107,6 +108,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/search', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: SearchScreen()))),
       GoRoute(path: '/product/:id', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: _OverlayBack(child: ProductDetailScreen(productId: s.pathParameters['id']!)))),
       GoRoute(path: '/checkout', pageBuilder: (_, s) => modalUpPage(key: s.pageKey, child: const _OverlayBack(child: CheckoutScreen()))),
+      GoRoute(
+        path: '/payment',
+        pageBuilder: (_, s) {
+          final args = s.extra;
+          if (args is! OnlinePaymentArgs) {
+            return modalUpPage(key: s.pageKey, child: const _OverlayBack(child: CheckoutScreen()));
+          }
+          return modalUpPage(key: s.pageKey, child: _OverlayBack(child: PaymentScreen(args: args)));
+        },
+      ),
       GoRoute(path: '/order-confirm/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: _OverlayBack(child: OrderConfirmScreen(orderId: s.pathParameters['id']!)))),
       GoRoute(path: '/order/:id', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: _OverlayBack(child: OrderTrackingScreen(orderId: s.pathParameters['id']!)))),
       GoRoute(path: '/addresses', pageBuilder: (_, s) => fadeSlidePage(key: s.pageKey, child: const _OverlayBack(child: AddressesScreen()))),

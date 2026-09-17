@@ -1,9 +1,0 @@
-# Never serve .env, config.php, config.local.php or the Firebase
-# service-account JSON over HTTP. Only PHP includes may read these files.
-<IfModule mod_authz_core.c>
-    Require all denied
-</IfModule>
-<IfModule !mod_authz_core.c>
-    Order allow,deny
-    Deny from all
-</IfModule>

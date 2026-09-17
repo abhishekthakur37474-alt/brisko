@@ -319,11 +319,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   // ===========================================================================
-  // UPI Intent payment flow (replaces the Cashfree integration).
+  // DISABLED: UPI Intent (deep-link) payment flow (replaced the Cashfree one).
   //
-  // The order is created ONLY after the UPI app confirms the payment, so backing
-  // out of the UPI app without paying never places an order.
+  // Superseded by the manual UPI/QR flow in `payment_screen.dart`: the customer
+  // scans the admin-configured QR / pays to the UPI ID, uploads a screenshot and
+  // submits the transaction id, and an admin confirms the payment. The code
+  // below is kept for reference only and is not compiled.
   // ===========================================================================
+  /*
   Future<void> _payWithUpi({
     required LocationState loc,
     required List<CartItem> items,
@@ -462,8 +465,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       },
     );
   }
+  */
 
-  // --- Cashfree integration (disabled, replaced by UPI Intent) ---------------
+  // --- Cashfree integration (disabled, replaced by the manual UPI/QR flow) ---
   // Future<void> _payOnline({
   //   required LocationState loc,
   //   required List<CartItem> items,

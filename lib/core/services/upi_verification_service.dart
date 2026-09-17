@@ -1,3 +1,9 @@
+// =============================================================================
+// DISABLED: Server-side UPI Intent verification. The UPI Intent (deep-link)
+// flow was replaced by the manual UPI/QR payment screen, where an admin confirms
+// the payment. This file is kept for reference only and is not compiled.
+// =============================================================================
+/*
 import 'dart:async';
 import 'dart:convert';
 
@@ -114,3 +120,4 @@ class UpiVerificationService {
     return UpiVerificationResult.fromJson(body);
   }
 }
+*/
